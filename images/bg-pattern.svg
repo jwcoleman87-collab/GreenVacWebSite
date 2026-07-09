@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800">
+  <!-- Grid lines — site plan style -->
+  <g stroke="#2a4a2a" stroke-width="0.5">
+    <line x1="0" y1="100" x2="800" y2="100" opacity="0.06"/>
+    <line x1="0" y1="200" x2="800" y2="200" opacity="0.06"/>
+    <line x1="0" y1="300" x2="800" y2="300" opacity="0.06"/>
+    <line x1="0" y1="400" x2="800" y2="400" opacity="0.06"/>
+    <line x1="0" y1="500" x2="800" y2="500" opacity="0.06"/>
+    <line x1="0" y1="600" x2="800" y2="600" opacity="0.06"/>
+    <line x1="0" y1="700" x2="800" y2="700" opacity="0.06"/>
+    <line x1="100" y1="0" x2="100" y2="800" opacity="0.06"/>
+    <line x1="200" y1="0" x2="200" y2="800" opacity="0.06"/>
+    <line x1="300" y1="0" x2="300" y2="800" opacity="0.06"/>
+    <line x1="400" y1="0" x2="400" y2="800" opacity="0.06"/>
+    <line x1="500" y1="0" x2="500" y2="800" opacity="0.06"/>
+    <line x1="600" y1="0" x2="600" y2="800" opacity="0.06"/>
+    <line x1="700" y1="0" x2="700" y2="800" opacity="0.06"/>
+  </g>
+
+  <!-- WATER service line (green dashed) — DBYD standard -->
+  <line x1="0" y1="130" x2="800" y2="130" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="14,7" opacity="0.09"/>
+  <text x="14" y="124" font-family="monospace" font-size="7" fill="#22c55e" opacity="0.11">WATER</text>
+  <circle cx="210" cy="130" r="6" fill="none" stroke="#22c55e" stroke-width="0.8" opacity="0.08"/>
+  <circle cx="210" cy="130" r="2.5" fill="#22c55e" opacity="0.06"/>
+  <circle cx="560" cy="130" r="6" fill="none" stroke="#22c55e" stroke-width="0.8" opacity="0.08"/>
+  <circle cx="560" cy="130" r="2.5" fill="#22c55e" opacity="0.06"/>
+
+  <!-- ELEC service line (red dashed) — DBYD standard -->
+  <line x1="0" y1="295" x2="800" y2="295" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="8,5" opacity="0.08"/>
+  <text x="14" y="289" font-family="monospace" font-size="7" fill="#ef4444" opacity="0.10">ELEC</text>
+  <circle cx="660" cy="295" r="6" fill="none" stroke="#ef4444" stroke-width="0.8" opacity="0.07"/>
+
+  <!-- GAS service line (yellow) — DBYD standard -->
+  <line x1="0" y1="465" x2="800" y2="465" stroke="#eab308" stroke-width="1.5" stroke-dasharray="18,4,4,4" opacity="0.07"/>
+  <text x="14" y="459" font-family="monospace" font-size="7" fill="#eab308" opacity="0.09">GAS</text>
+
+  <!-- COMMS service line (blue dashed) — DBYD standard -->
+  <line x1="0" y1="635" x2="800" y2="635" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="5,8" opacity="0.07"/>
+  <text x="14" y="629" font-family="monospace" font-size="7" fill="#60a5fa" opacity="0.09">COMMS</text>
+
+  <!-- Curved water main run -->
+  <path d="M 0 385 Q 200 365 400 400 T 800 378" fill="none" stroke="#22c55e" stroke-width="1" stroke-dasharray="12,8" opacity="0.06"/>
+
+  <!-- Building footprints -->
+  <rect x="55" y="32" width="135" height="88" fill="none" stroke="#3a5a3a" stroke-width="0.8" opacity="0.07"/>
+  <rect x="585" y="496" width="158" height="108" fill="none" stroke="#3a5a3a" stroke-width="0.8" opacity="0.07"/>
+  <rect x="325" y="342" width="88" height="68" fill="none" stroke="#3a5a3a" stroke-width="0.8" opacity="0.06"/>
+  <rect x="140" y="520" width="110" height="75" fill="none" stroke="#3a5a3a" stroke-width="0.6" opacity="0.05"/>
+
+  <!-- Survey cross markers -->
+  <g stroke="#1b7046" stroke-width="0.9" opacity="0.10">
+    <line x1="398" y1="196" x2="402" y2="204"/>
+    <line x1="402" y1="196" x2="398" y2="204"/>
+    <circle cx="400" cy="200" r="6" fill="none"/>
+  </g>
+  <g stroke="#1b7046" stroke-width="0.9" opacity="0.09">
+    <line x1="698" y1="396" x2="702" y2="404"/>
+    <line x1="702" y1="396" x2="698" y2="404"/>
+    <circle cx="700" cy="400" r="6" fill="none"/>
+  </g>
+  <g stroke="#1b7046" stroke-width="0.9" opacity="0.08">
+    <line x1="148" y1="696" x2="152" y2="704"/>
+    <line x1="152" y1="696" x2="148" y2="704"/>
+    <circle cx="150" cy="700" r="6" fill="none"/>
+  </g>
+
+  <!-- Dimension lines with measurements -->
+  <g fill="none" stroke="#3a5a3a" stroke-width="0.5" opacity="0.07">
+    <line x1="55" y1="128" x2="190" y2="128"/>
+    <line x1="55" y1="124" x2="55" y2="132"/>
+    <line x1="190" y1="124" x2="190" y2="132"/>
+  </g>
+  <text x="92" y="124" font-family="monospace" font-size="7" fill="#3a5a3a" opacity="0.09">4.2m</text>
+
+  <g fill="none" stroke="#3a5a3a" stroke-width="0.5" opacity="0.07">
+    <line x1="585" y1="618" x2="743" y2="618"/>
+    <line x1="585" y1="614" x2="585" y2="622"/>
+    <line x1="743" y1="614" x2="743" y2="622"/>
+  </g>
+  <text x="634" y="614" font-family="monospace" font-size="7" fill="#3a5a3a" opacity="0.09">6.8m</text>
+
+  <g fill="none" stroke="#3a5a3a" stroke-width="0.5" opacity="0.06">
+    <line x1="325" y1="338" x2="413" y2="338"/>
+    <line x1="325" y1="334" x2="325" y2="342"/>
+    <line x1="413" y1="334" x2="413" y2="342"/>
+  </g>
+  <text x="348" y="334" font-family="monospace" font-size="7" fill="#3a5a3a" opacity="0.08">2.9m</text>
+
+  <!-- Service pit / access point circles -->
+  <circle cx="358" cy="130" r="10" fill="none" stroke="#1b7046" stroke-width="0.8" opacity="0.08"/>
+  <circle cx="358" cy="130" r="4" fill="none" stroke="#1b7046" stroke-width="0.5" opacity="0.06"/>
+  <circle cx="660" cy="295" r="10" fill="none" stroke="#ef4444" stroke-width="0.8" opacity="0.07"/>
+  <circle cx="660" cy="295" r="4" fill="none" stroke="#ef4444" stroke-width="0.5" opacity="0.05"/>
+  <circle cx="480" cy="465" r="10" fill="none" stroke="#eab308" stroke-width="0.8" opacity="0.06"/>
+
+  <!-- North arrow -->
+  <g transform="translate(754,50)" opacity="0.09">
+    <line x1="0" y1="22" x2="0" y2="-22" stroke="#1b7046" stroke-width="1.2"/>
+    <polygon points="0,-22 -4,-12 4,-12" fill="#1b7046"/>
+    <text x="-4" y="32" font-family="monospace" font-size="9" fill="#1b7046">N</text>
+  </g>
+
+  <!-- Scale bar -->
+  <g transform="translate(602,776)" opacity="0.08">
+    <rect x="0" y="-4" width="30" height="8" fill="#1b7046" opacity="0.25"/>
+    <rect x="30" y="-4" width="30" height="8" fill="none" stroke="#1b7046" stroke-width="0.8"/>
+    <text x="4" y="-8" font-family="monospace" font-size="6" fill="#1b7046">0     10m</text>
+  </g>
+</svg>

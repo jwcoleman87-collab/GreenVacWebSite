@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Disallow: /.vercel/
+Disallow: /get-a-quote-src/
+Disallow: /compress.js
+Disallow: /compress_all.py
+
+Sitemap: https://www.greenvac.com.au/sitemap.xml

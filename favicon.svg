@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="GreenVac GV icon">
+  <circle cx="48" cy="48" r="46" fill="#167a45"/>
+  <circle cx="48" cy="48" r="42" fill="none" stroke="#d8f6df" stroke-width="4"/>
+  <text x="48" y="61" font-family="Arial Black, Arial, sans-serif" font-size="34" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="0">GV</text>
+</svg>

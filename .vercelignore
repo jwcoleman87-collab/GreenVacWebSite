@@ -1,0 +1,17 @@
+get-a-quote-src
+.claude
+.vercel
+.html
+compress.js
+compress_all.py
+to_webp.py
+minify_assets.py
+update_min_refs.py
+strip_inline_gtag.py
+bake.py
+partials
+*.log
+*.py
+*.md
+cold-email
+scripts

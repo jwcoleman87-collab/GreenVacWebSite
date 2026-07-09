@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Dark background -->
+  <rect width="1200" height="630" fill="#0b0d0b"/>
+  <!-- Left green accent bar -->
+  <rect width="8" height="630" fill="#1b7046"/>
+  <!-- Green top gradient overlay -->
+  <rect width="1200" height="630" fill="url(#grad)" opacity="0.12"/>
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1b7046;stop-opacity:1"/>
+      <stop offset="60%" style="stop-color:#0b0d0b;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <!-- Logo badge -->
+  <rect x="64" y="60" width="260" height="72" rx="8" fill="#1b7046"/>
+  <text x="194" y="94" font-family="Arial Black, sans-serif" font-weight="900" font-size="26" fill="#ffffff" text-anchor="middle">GREENVAC</text>
+  <text x="194" y="118" font-family="Arial, sans-serif" font-weight="700" font-size="13" fill="rgba(255,255,255,0.85)" text-anchor="middle" letter-spacing="5">SERVICES</text>
+  <!-- Veteran badge -->
+  <rect x="344" y="74" width="220" height="44" rx="4" fill="rgba(27,112,70,0.2)" stroke="#1b7046" stroke-width="1"/>
+  <text x="454" y="101" font-family="Arial, sans-serif" font-weight="700" font-size="12" fill="#28c06e" text-anchor="middle" letter-spacing="2">🎖 VETERAN OWNED</text>
+  <!-- Main headline -->
+  <text x="64" y="230" font-family="Arial Black, sans-serif" font-weight="900" font-size="62" fill="#f0f4f0">COMPACT HYDROVAC</text>
+  <text x="64" y="305" font-family="Arial Black, sans-serif" font-weight="900" font-size="62" fill="#28c06e">FOR CANBERRA TRADES</text>
+  <!-- Divider -->
+  <rect x="64" y="330" width="56" height="4" rx="2" fill="#1b7046"/>
+  <!-- Services line -->
+  <text x="64" y="378" font-family="Arial, sans-serif" font-size="22" fill="#8a9a8a">Non-Destructive Digging · Potholing · Trenching · Tight Access</text>
+  <!-- Phone number -->
+  <text x="64" y="450" font-family="Arial Black, sans-serif" font-weight="900" font-size="44" fill="#f0f4f0">0408 362 590</text>
+  <text x="64" y="488" font-family="Arial, sans-serif" font-size="20" fill="#5a6a5a">Call James Direct · No Office · No Middleman</text>
+  <!-- URL bar -->
+  <rect x="0" y="570" width="1200" height="60" fill="#111611"/>
+  <text x="64" y="607" font-family="Arial, sans-serif" font-size="20" fill="#1b7046">www.greenvac.com.au</text>
+  <text x="1136" y="607" font-family="Arial, sans-serif" font-size="20" fill="#3a5a3a" text-anchor="end">Canberra ACT &amp; Southern NSW</text>
+</svg>
