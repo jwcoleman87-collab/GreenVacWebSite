@@ -1658,6 +1658,24 @@ html.js .fade-up.visible { opacity: 1; transform: translateY(0); }
 @media (max-width: 400px) {
   .area-grid { grid-template-columns: minmax(0, 1fr); }
   .cta-actions .btn { max-width: 100%; white-space: normal; text-align: center; justify-content: center; }
+  .reviews-aggregate {
+    max-width: 100%;
+    padding: 10px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: 20px;
+  }
+  .reviews-aggregate-stars { font-size: .9rem; letter-spacing: 1px; }
+  .reviews-aggregate-meta {
+    flex: 1 0 100%;
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    padding: 7px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+  }
 }
 
 /* ─── Sticky Floating Call Button (mobile only) ───────────── */
