@@ -1,17 +1,17 @@
-"""Prepare fidelity-preserving homepage hero exports from supplied GreenVac photos."""
+"""Prepare homepage hero exports from the supplied, user-edited GreenVac photos."""
 
 from pathlib import Path
 import sys
 
-from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+from PIL import Image, ImageOps
 
 
 JOBS = (
-    ("IMG_5285.JPEG", "ndd-hydrovac-method", (900, 1200)),
-    ("IMG_5767.JPEG", "ndd-exposed-pipe", (720, 540)),
-    ("IMG_7356.JPEG", "ndd-tight-access", (640, 853)),
-    ("IMG_7638.JPEG", "ndd-established-garden", (640, 853)),
-    ("IMG_7567.JPEG", "ndd-services-and-roots", (640, 853)),
+    ("Untitled design (88).png", "ndd-hydrovac-method", (900, 1200)),
+    ("Untitled design (91).png", "ndd-exposed-pipe", (720, 540)),
+    ("Untitled design (90).png", "ndd-tight-access", (640, 853)),
+    ("Untitled design (89).png", "ndd-established-garden", (640, 853)),
+    ("Untitled design (92).png", "ndd-services-and-roots", (640, 853)),
 )
 
 
@@ -27,22 +27,18 @@ def main() -> None:
         with Image.open(source_path) as source:
             image = ImageOps.exif_transpose(source).convert("RGB")
             image = image.resize(size, Image.Resampling.LANCZOS)
-            image = ImageEnhance.Contrast(image).enhance(1.035)
-            image = image.filter(
-                ImageFilter.UnsharpMask(radius=1.1, percent=65, threshold=4)
-            )
 
             image.save(
                 output_dir / f"{output_stem}.jpg",
                 "JPEG",
-                quality=90,
+                quality=92,
                 optimize=True,
                 subsampling=0,
             )
             image.save(
                 output_dir / f"{output_stem}.webp",
                 "WEBP",
-                quality=82,
+                quality=86,
                 method=6,
             )
 
