@@ -259,24 +259,6 @@ document.addEventListener('DOMContentLoaded', function () {
     el.setAttribute('title', 'Call James Direct');
   });
 
-  /* ─── Phone Click Conversion Tracking ───────────────── */
-  document.querySelectorAll('a[href^="tel:"]').forEach(function(link) {
-    link.addEventListener('click', function() {
-      // Fire to GA4
-      if (typeof gtag === 'function') {
-        gtag('event', 'phone_call_click', {
-          'event_category': 'engagement',
-          'event_label': 'Phone Call',
-          'value': 1
-        });
-      }
-      // Fire to PostHog
-      if (typeof posthog !== 'undefined') {
-        posthog.capture('phone_call_click', { label: 'Phone Call' });
-      }
-    });
-  });
-
   /* ─── Dynamic copyright year ─────────────────────────── */
   document.querySelectorAll('.copyright-year').forEach(function (el) {
     el.textContent = new Date().getFullYear();
