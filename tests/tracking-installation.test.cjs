@@ -3,6 +3,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const vm = require("node:vm");
 
 const root = path.join(__dirname, "..");
 
@@ -27,6 +28,17 @@ function estimatorTrackingHashes(relativePath) {
     .map((match) => match[1])
     .filter((body) => body.includes("posthog.init(") || body.includes("gtag('config'"))
     .map((body) => `'sha256-${crypto.createHash("sha256").update(body).digest("base64")}'`);
+}
+
+function calculateEstimatorPrice(input) {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+  const pricingSource = estimator.slice(
+    estimator.indexOf("const RATE"),
+    estimator.indexOf("function SummaryRows"),
+  );
+  const context = { input, result: null };
+  vm.runInNewContext(`${pricingSource}\nresult = calcEstimate(input);`, context);
+  return JSON.parse(JSON.stringify(context.result));
 }
 
 test("every active page with a telephone link loads one shared phone helper", () => {
@@ -136,4 +148,25 @@ test("estimator keeps the first choice focused on three featured services plus m
   assert.equal(estimator.includes("function S5_UNUSED"), false);
   assert.ok(estimator.includes("/fonts/montserrat-latin.woff2"));
   assert.equal(estimator.includes("fonts.googleapis.com"), false);
+});
+
+test("standard and uncertain NDD depth preserve the production price calculation", () => {
+  const baseAnswers = {
+    jobType: "service-exposure",
+    subtype: "Dig Around Known Services",
+    exposureCount: "3",
+    access: "open",
+    ground: "normal",
+    congestion: "clear",
+    spoil: "leave-onsite",
+    suburb: "Canberra",
+  };
+
+  for (const exposureDepth of ["standard", "unsure"]) {
+    const estimate = calculateEstimatorPrice({ ...baseAnswers, exposureDepth });
+    assert.deepEqual(
+      { low: estimate.low, high: estimate.high, labour: estimate.labour, travel: estimate.travel },
+      { low: 820, high: 940, labour: 823, travel: 0 },
+    );
+  }
 });

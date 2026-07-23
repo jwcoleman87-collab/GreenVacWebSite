@@ -1271,7 +1271,7 @@ function calcEstimate(ans) {
         ? 0.95
         : ans.exposureDepth === "deep"
           ? 1.20
-          : 1.10;
+          : 1.00;
     productionHours = count * 0.75 * depthMultiplier;
     if (
       ans.exposureCount === "unsure" ||
