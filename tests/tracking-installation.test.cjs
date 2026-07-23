@@ -3,6 +3,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const vm = require("node:vm");
 
 const root = path.join(__dirname, "..");
 
@@ -27,6 +28,17 @@ function estimatorTrackingHashes(relativePath) {
     .map((match) => match[1])
     .filter((body) => body.includes("posthog.init(") || body.includes("gtag('config'"))
     .map((body) => `'sha256-${crypto.createHash("sha256").update(body).digest("base64")}'`);
+}
+
+function calculateEstimatorPrice(input) {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+  const pricingSource = estimator.slice(
+    estimator.indexOf("const RATE"),
+    estimator.indexOf("function SummaryRows"),
+  );
+  const context = { input, result: null };
+  vm.runInNewContext(`${pricingSource}\nresult = calcEstimate(input);`, context);
+  return JSON.parse(JSON.stringify(context.result));
 }
 
 test("every active page with a telephone link loads one shared phone helper", () => {
@@ -103,7 +115,7 @@ test("estimator lead dispatch remains after accepted response and outside render
   const responseGuard = estimator.indexOf("if (!response.ok");
   const leadDispatch = estimator.indexOf("trackEstimatorLead");
   const successState = estimator.indexOf('setSubmitState("success")');
-  const confirmationComponent = estimator.indexOf("function S10");
+  const confirmationComponent = estimator.indexOf("function S7");
 
   assert.ok(responseGuard > 0);
   assert.ok(leadDispatch > responseGuard);
@@ -112,4 +124,49 @@ test("estimator lead dispatch remains after accepted response and outside render
   assert.equal(estimator.slice(confirmationComponent).includes("trackEstimatorLead"), false);
   assert.ok(estimator.indexOf("submitLockRef.current = true") < estimator.indexOf("fetch(FORM_ENDPOINT"));
   assert.ok(estimator.indexOf("submitLockRef.current = false") > estimator.indexOf("catch {"));
+});
+
+test("estimator shows the price before requesting contact details", () => {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+  const estimateComponent = estimator.indexOf("function S4");
+  const contactComponent = estimator.indexOf("function S5");
+
+  assert.ok(estimateComponent > 0);
+  assert.ok(contactComponent > estimateComponent);
+  assert.ok(estimator.includes("Price shown before contact details"));
+  assert.ok(estimator.includes("No name or phone number is needed to see your estimate."));
+});
+
+test("estimator keeps the first choice focused on three featured services plus more", () => {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+
+  assert.ok(estimator.includes('label: "Non-Destructive Digging"'));
+  assert.ok(estimator.includes('label: "Trenching"'));
+  assert.ok(estimator.includes('label: "Potholing"'));
+  assert.ok(estimator.includes("More Job Types"));
+  assert.ok(estimator.includes('label: "Not Sure"'));
+  assert.equal(estimator.includes("function S5_UNUSED"), false);
+  assert.ok(estimator.includes("/fonts/montserrat-latin.woff2"));
+  assert.equal(estimator.includes("fonts.googleapis.com"), false);
+});
+
+test("standard and uncertain NDD depth preserve the production price calculation", () => {
+  const baseAnswers = {
+    jobType: "service-exposure",
+    subtype: "Dig Around Known Services",
+    exposureCount: "3",
+    access: "open",
+    ground: "normal",
+    congestion: "clear",
+    spoil: "leave-onsite",
+    suburb: "Canberra",
+  };
+
+  for (const exposureDepth of ["standard", "unsure"]) {
+    const estimate = calculateEstimatorPrice({ ...baseAnswers, exposureDepth });
+    assert.deepEqual(
+      { low: estimate.low, high: estimate.high, labour: estimate.labour, travel: estimate.travel },
+      { low: 820, high: 940, labour: 823, travel: 0 },
+    );
+  }
 });
