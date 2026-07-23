@@ -15,6 +15,8 @@ The site uses direct `gtag.js`, not Google Tag Manager. The existing Google tag 
 
 Microsoft Clarity project `xmk1qbiqul` and the existing PostHog installation remain unchanged. The shared lead helper does not read from, write to, or redefine Clarity, Meta, consent, or page-view state.
 
+The estimator retains its existing inline PostHog and Google tag bootstraps. Production verification found that the site CSP previously blocked those two scripts, so `vercel.json` now permits only their exact SHA-256 hashes. This does not allow arbitrary inline JavaScript or change any tracking ID, event, consent behavior, or loader. If either bootstrap is intentionally edited, regenerate and review its CSP hash; the regression suite rejects stale hashes.
+
 ## Events and firing points
 
 `js/analytics.js` is the single lead-event helper used by the static site and estimator.

@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
@@ -18,6 +19,14 @@ function activeHtmlFiles(directory = root) {
     if (entry.isFile() && entry.name.endsWith(".html")) found.push(fullPath);
   }
   return found;
+}
+
+function estimatorTrackingHashes(relativePath) {
+  const html = read(relativePath);
+  return [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+    .map((match) => match[1])
+    .filter((body) => body.includes("posthog.init(") || body.includes("gtag('config'"))
+    .map((body) => `'sha256-${crypto.createHash("sha256").update(body).digest("base64")}'`);
 }
 
 test("every active page with a telephone link loads one shared phone helper", () => {
@@ -72,6 +81,21 @@ test("Google tag IDs and existing event names are preserved", () => {
   ]) {
     assert.ok(estimator.includes(eventName), eventName);
   }
+});
+
+test("CSP permits only the exact existing estimator tracking bootstraps", () => {
+  const sourceHashes = estimatorTrackingHashes("get-a-quote-src/index.html");
+  const builtHashes = estimatorTrackingHashes("get-a-quote/index.html");
+  const config = JSON.parse(read("vercel.json"));
+  const csp = config.headers
+    .flatMap((rule) => rule.headers)
+    .find((header) => header.key === "Content-Security-Policy").value;
+  const scriptPolicy = csp.match(/script-src[^;]+/)[0];
+
+  assert.equal(sourceHashes.length, 2);
+  assert.deepEqual(builtHashes, sourceHashes);
+  for (const hash of sourceHashes) assert.ok(scriptPolicy.includes(hash), hash);
+  assert.equal(scriptPolicy.includes("'unsafe-inline'"), false);
 });
 
 test("estimator lead dispatch remains after accepted response and outside render paths", () => {
