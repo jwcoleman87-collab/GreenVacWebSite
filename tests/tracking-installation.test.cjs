@@ -103,7 +103,7 @@ test("estimator lead dispatch remains after accepted response and outside render
   const responseGuard = estimator.indexOf("if (!response.ok");
   const leadDispatch = estimator.indexOf("trackEstimatorLead");
   const successState = estimator.indexOf('setSubmitState("success")');
-  const confirmationComponent = estimator.indexOf("function S10");
+  const confirmationComponent = estimator.indexOf("function S7");
 
   assert.ok(responseGuard > 0);
   assert.ok(leadDispatch > responseGuard);
@@ -112,4 +112,28 @@ test("estimator lead dispatch remains after accepted response and outside render
   assert.equal(estimator.slice(confirmationComponent).includes("trackEstimatorLead"), false);
   assert.ok(estimator.indexOf("submitLockRef.current = true") < estimator.indexOf("fetch(FORM_ENDPOINT"));
   assert.ok(estimator.indexOf("submitLockRef.current = false") > estimator.indexOf("catch {"));
+});
+
+test("estimator shows the price before requesting contact details", () => {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+  const estimateComponent = estimator.indexOf("function S4");
+  const contactComponent = estimator.indexOf("function S5");
+
+  assert.ok(estimateComponent > 0);
+  assert.ok(contactComponent > estimateComponent);
+  assert.ok(estimator.includes("Price shown before contact details"));
+  assert.ok(estimator.includes("No name or phone number is needed to see your estimate."));
+});
+
+test("estimator keeps the first choice focused on three featured services plus more", () => {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+
+  assert.ok(estimator.includes('label: "Non-Destructive Digging"'));
+  assert.ok(estimator.includes('label: "Trenching"'));
+  assert.ok(estimator.includes('label: "Potholing"'));
+  assert.ok(estimator.includes("More Job Types"));
+  assert.ok(estimator.includes('label: "Not Sure"'));
+  assert.equal(estimator.includes("function S5_UNUSED"), false);
+  assert.ok(estimator.includes("/fonts/montserrat-latin.woff2"));
+  assert.equal(estimator.includes("fonts.googleapis.com"), false);
 });
