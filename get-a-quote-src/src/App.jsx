@@ -403,7 +403,7 @@ button{-webkit-tap-highlight-color:transparent;}
 .brand-wrap{display:flex;align-items:center;gap:12px;min-width:0;}
 .back-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--ink);display:grid;place-items:center;cursor:pointer;font-size:24px;line-height:1;flex:0 0 auto;}
 .back-btn:hover{border-color:var(--green);color:var(--green);}
-.logo-image{display:block;width:132px;height:44px;}
+.logo-image{display:block;width:auto;height:56px;object-fit:contain;}
 .step-label{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;}
 .progress{height:4px;background:#e7ebe6;}
 .progress-fill{height:100%;background:var(--green);transition:width .35s ease;}
@@ -529,7 +529,7 @@ textarea.input{resize:vertical;min-height:82px;}
 @keyframes fade-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (max-width:600px){
   .topbar-inner{height:62px;padding:0 14px;}
-  .logo-image{width:112px;height:38px;}
+  .logo-image{width:auto;height:50px;}
   .content{padding:28px 14px 190px;}
   .heading{font-size:30px;letter-spacing:-.8px;}
   .subhead{font-size:13px;}
@@ -588,7 +588,13 @@ function Shell({ step, onBack, children, footer }) {
                 ‹
               </button>
             )}
-            <img className="logo-image" src="/images/logo.webp" alt="GreenVac Services" />
+            <img
+              className="logo-image"
+              src="/images/logo.webp"
+              alt="GreenVac Services"
+              width="260"
+              height="183"
+            />
           </div>
           <span className="step-label">{step === TOTAL_STEPS ? "Complete" : `Step ${step} of ${TOTAL_STEPS - 1}`}</span>
         </div>
