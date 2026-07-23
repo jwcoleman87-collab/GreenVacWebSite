@@ -5,6 +5,7 @@ import os
 PAIRS = [
     ("css/styles.css", "css/styles.min.css", "css"),
     ("js/main.js",     "js/main.min.js",     "js"),
+    ("js/analytics.js", "js/analytics.min.js", "js"),
 ]
 
 for src, dst, kind in PAIRS:

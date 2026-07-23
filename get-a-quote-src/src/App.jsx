@@ -1547,6 +1547,8 @@ function S8({ onNext, onBack, ans, setAns }) {
 function S9({ onNext, onBack, ans }) {
   const [submitState, setSubmitState] = useState("idle");
   const [submitError, setSubmitError] = useState("");
+  const submitLockRef = useRef(false);
+  const submissionEventIdRef = useRef(null);
   const isSubmitting = submitState === "submitting";
   const reviewRows = getJobDetailRows(ans);
 
@@ -1609,23 +1611,20 @@ function S9({ onNext, onBack, ans }) {
   }
 
   async function handleSubmit() {
-    if (isSubmitting) return;
+    if (submitLockRef.current) return;
+
+    submitLockRef.current = true;
+    if (!submissionEventIdRef.current) {
+      submissionEventIdRef.current = window.GreenVacAnalytics?.createEventId("estimator")
+        || `estimator-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    }
 
     const request = buildRequestDetails();
     setSubmitState("submitting");
     setSubmitError("");
 
     if (typeof window.posthog !== "undefined") {
-      window.posthog.capture("estimator_submit_attempt", {
-        job_type: ans.jobType,
-        subtype: ans.subtype,
-        estimate_low: request.est.low,
-        estimate_high: request.est.high,
-        needs_review: request.est.needsReview,
-        metres: ans.metres || null,
-        access: ans.access || null,
-        ground: ans.ground || null,
-      });
+      window.posthog.capture("estimator_submit_attempt");
     }
 
     const formData = new FormData();
@@ -1652,6 +1651,7 @@ function S9({ onNext, onBack, ans }) {
     formData.append("preferred_time", request.time || "");
     formData.append("message", request.body);
     formData.append("source_page", window.location.pathname);
+    formData.append("analytics_event_id", submissionEventIdRef.current);
     (ans.sitePhotos || []).forEach((file, index) => {
       formData.append(`site_photo_${index + 1}`, file);
     });
@@ -1675,35 +1675,24 @@ function S9({ onNext, onBack, ans }) {
         throw new Error(providerMessage || `Request failed with status ${response.status}`);
       }
 
-      if (typeof window.gtag === "function") {
-        window.gtag("event", "form_submit", {
-          event_category: "lead",
-          event_label: "Estimator Request",
-          value: 1,
-        });
-      }
+      window.GreenVacAnalytics?.trackEstimatorLead({
+        eventId: submissionEventIdRef.current,
+      });
 
       if (typeof window.posthog !== "undefined") {
-        window.posthog.capture("estimator_submit_success", {
-          job_type: ans.jobType,
-          subtype: ans.subtype,
-          estimate_low: request.est.low,
-          estimate_high: request.est.high,
-          needs_review: request.est.needsReview,
-        });
+        window.posthog.capture("estimator_submit_success");
       }
 
       setSubmitState("success");
       onNext();
-    } catch (error) {
+    } catch {
       if (typeof window.posthog !== "undefined") {
         window.posthog.capture("estimator_submit_error", {
-          job_type: ans.jobType,
-          subtype: ans.subtype,
-          error: error instanceof Error ? error.message : "Unknown submission error",
+          reason: "submission_failed",
         });
       }
 
+      submitLockRef.current = false;
       setSubmitState("error");
       setSubmitError("Could not send your request right now. Please try again, call James direct, or use the email fallback below.");
     }
@@ -1718,7 +1707,7 @@ function S9({ onNext, onBack, ans }) {
         <button className="btn" onClick={handleSubmit} disabled={isSubmitting}>
           {isSubmitting ? "Sending Request..." : submitState === "error" ? "Try Sending Again" : "Request Estimate & Preferred Booking"}
         </button>
-        <div style={{textAlign:"center",marginTop:10,fontSize:12,color:"var(--grey)"}}>Urgent? <a href="tel:0408362590" style={{color:"var(--g)",fontWeight:600}}>Call 0408 362 590</a></div>
+        <div style={{textAlign:"center",marginTop:10,fontSize:12,color:"var(--grey)"}}>Urgent? <a href="tel:0408362590" data-phone-placement="estimator_review" style={{color:"var(--g)",fontWeight:600}}>Call 0408 362 590</a></div>
       </div>
     }>
       <H ey="Final Check" title="Ready to submit?" sub="Review your request before it goes to GreenVac." />
@@ -1774,7 +1763,7 @@ function S10({ onRestart }) {
             </div>
           ))}
         </div>
-        <div style={{fontSize:12,color:"var(--grey)"}}>Urgent? <a href="tel:0408362590" style={{color:"var(--g)",fontWeight:600}}>Call GreenVac directly</a></div>
+        <div style={{fontSize:12,color:"var(--grey)"}}>Urgent? <a href="tel:0408362590" data-phone-placement="estimator_success" style={{color:"var(--g)",fontWeight:600}}>Call GreenVac directly</a></div>
       </div>
     </Shell>
   );
@@ -1788,9 +1777,9 @@ export default function App() {
   const next = () => {
     if (typeof window.posthog !== 'undefined') {
       if (scr === 1) {
-        window.posthog.capture('estimator_started', { job_type: ans.jobType });
+        window.posthog.capture('estimator_started');
       }
-      window.posthog.capture('estimator_step_' + (scr + 1), { from_step: scr, job_type: ans.jobType });
+      window.posthog.capture('estimator_step_' + (scr + 1), { from_step: scr });
     }
     setScr(s => s + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1809,4 +1798,3 @@ export default function App() {
   if(scr===9)  return <S9  ans={ans} onNext={next} onBack={back}/>;
   if(scr===10) return <S10 onRestart={restart}/>;
 }
-

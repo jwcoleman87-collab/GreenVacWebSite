@@ -1,0 +1,91 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+
+const root = path.join(__dirname, "..");
+
+function read(relativePath) {
+  return fs.readFileSync(path.join(root, relativePath), "utf8");
+}
+
+function activeHtmlFiles(directory = root) {
+  const found = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if ([".git", ".vercel", "cold-email", "get-a-quote-src", "node_modules", "partials"].includes(entry.name)) continue;
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) found.push(...activeHtmlFiles(fullPath));
+    if (entry.isFile() && entry.name.endsWith(".html")) found.push(fullPath);
+  }
+  return found;
+}
+
+test("every active page with a telephone link loads one shared phone helper", () => {
+  const pages = activeHtmlFiles().filter((file) => read(path.relative(root, file)).includes('href="tel:'));
+  assert.ok(pages.length > 20);
+
+  for (const file of pages) {
+    const html = fs.readFileSync(file, "utf8");
+    assert.equal((html.match(/\/js\/analytics\.min\.js/g) || []).length, 1, path.relative(root, file));
+  }
+});
+
+test("Clarity and the existing Google tag stay single-installed on measured pages", () => {
+  for (const file of activeHtmlFiles()) {
+    const html = fs.readFileSync(file, "utf8");
+    const relative = path.relative(root, file);
+    assert.equal((html.match(/\/js\/clarity\.js/g) || []).length, 1, `Clarity ${relative}`);
+    assert.equal((html.match(/googletagmanager\.com\/gtag\/js\?id=GT-WB5M7MK8/g) || []).length, 1, `Google tag ${relative}`);
+  }
+});
+
+test("the audit does not introduce or duplicate GA4, GTM, Meta Pixel, Meta CAPI, or consent code", () => {
+  const webAssets = [
+    ...activeHtmlFiles().map((file) => fs.readFileSync(file, "utf8")),
+    read("js/analytics.js"),
+    read("js/main.js"),
+    read("vercel.json"),
+  ].join("\n");
+
+  assert.equal(/GTM-[A-Z0-9]+/.test(webAssets), false);
+  assert.equal(/\bG-[A-Z0-9]{6,}\b/.test(webAssets), false);
+  assert.equal(/connect\.facebook\.net|facebook\.com\/tr|\bfbq\s*\(/i.test(webAssets), false);
+  assert.equal(/meta.{0,20}(?:conversions api|capi)|(?:conversions api|capi).{0,20}meta/i.test(webAssets), false);
+  assert.equal(/gtag\s*\(\s*["']consent["']|ad_storage|analytics_storage/.test(webAssets), false);
+});
+
+test("Google tag IDs and existing event names are preserved", () => {
+  const main = read("js/main.js");
+  const analytics = read("js/analytics.js");
+  const estimator = read("get-a-quote-src/src/App.jsx");
+
+  assert.equal((main.match(/gtag\('config', 'GT-WB5M7MK8'\)/g) || []).length, 1);
+  assert.equal((main.match(/gtag\('config', 'AW-17948622134'\)/g) || []).length, 1);
+  assert.match(analytics, /"phone_call_click"/);
+  assert.match(analytics, /"form_submit"/);
+  for (const eventName of [
+    "estimator_submit_attempt",
+    "estimator_submit_success",
+    "estimator_submit_error",
+    "estimator_started",
+    "estimator_step_",
+  ]) {
+    assert.ok(estimator.includes(eventName), eventName);
+  }
+});
+
+test("estimator lead dispatch remains after accepted response and outside render paths", () => {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+  const responseGuard = estimator.indexOf("if (!response.ok");
+  const leadDispatch = estimator.indexOf("trackEstimatorLead");
+  const successState = estimator.indexOf('setSubmitState("success")');
+  const confirmationComponent = estimator.indexOf("function S10");
+
+  assert.ok(responseGuard > 0);
+  assert.ok(leadDispatch > responseGuard);
+  assert.ok(successState > leadDispatch);
+  assert.ok(confirmationComponent > successState);
+  assert.equal(estimator.slice(confirmationComponent).includes("trackEstimatorLead"), false);
+  assert.ok(estimator.indexOf("submitLockRef.current = true") < estimator.indexOf("fetch(FORM_ENDPOINT"));
+  assert.ok(estimator.indexOf("submitLockRef.current = false") > estimator.indexOf("catch {"));
+});
