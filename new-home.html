@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- DRAFT PREVIEW — not indexed, not linked from navigation -->
+  <meta name="robots" content="noindex, nofollow">
+
+  <title>GreenVac Services | Dig Around Live Services Without Wrecking Them</title>
+  <meta name="description" content="Hydro excavation across Canberra ACT and Southern NSW. High-pressure water and vacuum digging that leaves pipes, cables and tree roots in one piece. Call James direct: 0408 362 590.">
+  <link rel="canonical" href="https://www.greenvac.com.au/new-home">
+
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0C1F14">
+
+  <meta property="og:type"        content="website">
+  <meta property="og:title"       content="GreenVac Services | Dig Around Live Services Without Wrecking Them">
+  <meta property="og:description" content="Hydro excavation across Canberra ACT and Southern NSW. Water in, slurry out — everything buried stays in one piece.">
+  <meta property="og:url"         content="https://www.greenvac.com.au/new-home">
+  <meta property="og:image"       content="https://www.greenvac.com.au/images/og-image.png">
+  <meta property="og:site_name"   content="GreenVac Services">
+
+  <link rel="preload" as="image" href="/images/hero-service-trench.webp" type="image/webp" fetchpriority="high">
+  <link rel="preload" as="font" href="/fonts/montserrat-latin.woff2" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/styles.min.css?v=ndd-responsive-20260718">
+
+  <style>
+  /* ============================================================
+     NEW HOME DRAFT — "Hydraulic Calm"
+     Scoped with .nh- prefixes; global styles.css still drives
+     the shared header/footer partials.
+     ============================================================ */
+  :root {
+    --nh-ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+    --nh-ease-quick: cubic-bezier(0.4, 0, 0.2, 1);
+    /* Dark "pit" palette — green-black, AA verified */
+    --pit-deepest: #0A1810;
+    --pit-bg: #0C1F14;
+    --pit-card: #123125;
+    --pit-text: #F4EFE2;
+    --pit-text-muted: #C7D4C4;
+    --pit-text-dim: #8FA394;
+    --pit-accent: #3ECF8E;
+    --pit-border: #1E3A2B;
+    /* AS 5488 utility marker colours (used only inside the diagram) */
+    --util-power: #E8792B;
+    --util-gas: #F0C929;
+    --util-water: #4FA3E0;
+    --util-comms: #E9E4D6;
+    --nh-section-pad: clamp(96px, 8vw, 160px);
+  }
+
+  .nh-page { background: var(--dark-bg); color: var(--text-primary); overflow-x: clip; }
+  .nh-page img { filter: saturate(0.92) contrast(1.06) brightness(0.97); }
+  .nh-container { max-width: 1200px; margin: 0 auto; padding: 0 var(--container-pad); }
+
+  .nh-eyebrow {
+    font-size: clamp(0.75rem, 0.7rem + 0.3vw, 0.875rem);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--green-brand); margin-bottom: 14px;
+  }
+  .nh-dark .nh-eyebrow { color: var(--pit-accent); }
+  .nh-h2 {
+    font-size: clamp(1.75rem, 1.2rem + 2.6vw, 3rem);
+    font-weight: 700; line-height: 1.1; letter-spacing: -0.01em;
+    margin: 0 0 18px; color: var(--text-primary);
+  }
+  .nh-dark .nh-h2 { color: var(--pit-text); }
+  .nh-body {
+    font-size: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+    line-height: 1.65; color: var(--text-muted); max-width: 62ch; margin: 0 0 16px;
+  }
+  .nh-dark .nh-body { color: var(--pit-text-muted); }
+
+  /* ---- CTAs ------------------------------------------------- */
+  .nh-btn {
+    position: relative; display: inline-block; overflow: hidden;
+    padding: 17px 34px; border-radius: 6px;
+    font-weight: 800; font-size: 1rem; letter-spacing: 0.01em;
+    text-decoration: none; text-align: center;
+    background: var(--green-brand); color: #FFFDF6;
+    transition: color 250ms var(--nh-ease-quick);
+  }
+  .nh-btn::before {
+    content: ""; position: absolute; inset: 0; background: var(--green-dark);
+    transform: translateY(101%); transition: transform 250ms var(--nh-ease-quick);
+    z-index: 0;
+  }
+  .nh-btn:hover::before, .nh-btn:focus-visible::before { transform: translateY(0); }
+  .nh-btn > span { position: relative; z-index: 1; }
+  .nh-btn:focus-visible { outline: 3px solid var(--pit-accent); outline-offset: 3px; }
+  .nh-btn--onDark { background: var(--pit-accent); color: var(--pit-bg); }
+  .nh-btn--onDark::before { background: #63dba4; }
+  .nh-btn-ghost {
+    display: inline-block; padding: 16px 26px; border-radius: 6px;
+    font-weight: 700; font-size: 1rem; text-decoration: none;
+    color: var(--pit-text); border: 1.5px solid rgba(244,239,226,0.45);
+    transition: border-color 200ms var(--nh-ease-quick), background 200ms var(--nh-ease-quick);
+  }
+  .nh-btn-ghost:hover, .nh-btn-ghost:focus-visible { border-color: var(--pit-accent); background: rgba(62,207,142,0.08); }
+  .nh-btn-ghost:focus-visible { outline: 3px solid var(--pit-accent); outline-offset: 3px; }
+
+  /* ---- HERO -------------------------------------------------- */
+  .nh-hero {
+    position: relative; min-height: 100vh; min-height: 100svh;
+    display: flex; align-items: center;
+    background: var(--pit-deepest);
+  }
+  .nh-hero-media { position: absolute; inset: 0; overflow: hidden; }
+  .nh-hero-media img {
+    width: 100%; height: 100%; object-fit: cover; object-position: center 62%;
+    display: block;
+  }
+  .nh-hero-media::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to top,
+      rgba(10,24,16,0.92) 0%, rgba(10,24,16,0.62) 38%,
+      rgba(10,24,16,0.28) 68%, rgba(10,24,16,0.12) 100%);
+  }
+  .nh-hero-inner { position: relative; z-index: 1; width: 100%; padding: 140px 0 150px; }
+  .nh-hero .nh-eyebrow { color: var(--pit-accent); }
+  .nh-hero-title {
+    font-size: clamp(2.5rem, 1.4rem + 5.5vw, 5.25rem);
+    font-weight: 800; line-height: 1.02; letter-spacing: -0.02em;
+    color: var(--pit-text); margin: 0 0 22px; max-width: 15ch;
+  }
+  .nh-hero-sub {
+    font-size: clamp(1.05rem, 1rem + 0.4vw, 1.25rem); line-height: 1.6;
+    color: var(--pit-text-muted); max-width: 54ch; margin: 0 0 34px;
+  }
+  .nh-hero-ctas { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .nh-hero-note { margin-top: 18px; font-size: 0.8125rem; letter-spacing: 0.04em; color: var(--pit-text-dim); }
+
+  /* Ground-line mask: irregular soil edge + hairline, bleeding into the cream section */
+  .nh-groundline { position: absolute; left: 0; right: 0; bottom: -1px; z-index: 2; pointer-events: none; }
+  .nh-groundline svg { display: block; width: 100%; height: clamp(42px, 6vw, 90px); }
+
+  /* ---- STAKES (cream) ---------------------------------------- */
+  .nh-stakes { padding: var(--nh-section-pad) 0 0; background: var(--dark-bg); }
+  .nh-split { display: grid; grid-template-columns: 7fr 5fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+  .nh-split-media { position: relative; }
+  .nh-split-media img {
+    width: 100%; height: clamp(340px, 46vw, 560px); object-fit: cover; object-position: center 40%;
+    border-radius: 8px; display: block;
+    box-shadow: 0 24px 48px -24px rgba(10,24,16,0.45);
+  }
+  .nh-trust-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .nh-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 15px; border-radius: 999px;
+    background: var(--green-tint); border: 1px solid var(--border-subtle);
+    font-size: 0.8125rem; font-weight: 700; color: var(--green-dark); letter-spacing: 0.02em;
+  }
+  .nh-chip svg { flex: 0 0 auto; }
+
+  /* Descent gradient: cream sinks below ground level into the pit */
+  .nh-descend {
+    height: clamp(140px, 18vw, 220px); margin-top: calc(-1 * clamp(20px, 3vw, 40px));
+    background: linear-gradient(to bottom, #F7F1E3 0%, #E4DCC6 30%, #2E4536 70%, #0C1F14 100%);
+  }
+
+  /* ---- SIGNATURE CROSS-SECTION (dark, sticky) ----------------- */
+  .nh-dark { background: var(--pit-bg); }
+  .nh-dig-wrap { position: relative; height: 240vh; background: var(--pit-bg); }
+  .nh-dig-sticky {
+    position: sticky; top: 0; height: 100vh; height: 100svh;
+    display: flex; flex-direction: column; justify-content: center;
+    overflow: hidden;
+  }
+  .nh-dig-head { text-align: center; padding: 0 var(--container-pad); margin-bottom: clamp(10px, 2vh, 28px); }
+  .nh-dig-head .nh-body { margin-left: auto; margin-right: auto; }
+  .nh-dig-figure { width: min(1080px, 94vw); margin: 0 auto; }
+  .nh-dig-figure svg { display: block; width: 100%; height: auto; }
+  .nh-dig-hint {
+    text-align: center; margin-top: 14px; font-size: 0.8125rem;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--pit-text-dim);
+  }
+  @media (max-width: 700px) {
+    .nh-dig-wrap { height: auto; }
+    .nh-dig-sticky { position: static; height: auto; padding: var(--nh-section-pad) 0 40px; }
+  }
+
+  /* Diagram internals */
+  .nh-svc { opacity: 0.32; transition: opacity 600ms var(--nh-ease-settle); }
+  .nh-svc .nh-svc-chip, .nh-svc .nh-svc-tick { opacity: 0; transform: translateY(8px); transition: opacity 500ms var(--nh-ease-settle), transform 500ms var(--nh-ease-settle); }
+  .nh-svc .nh-svc-halo { opacity: 0; }
+  .nh-svc.found { opacity: 1; }
+  .nh-svc.found .nh-svc-chip, .nh-svc.found .nh-svc-tick { opacity: 1; transform: translateY(0); }
+  .nh-svc.found .nh-svc-halo { animation: nh-halo 900ms var(--nh-ease-settle) 1 both; }
+  @keyframes nh-halo { 0% { opacity: 0.75; transform: scale(0.6); } 100% { opacity: 0; transform: scale(1.5); } }
+  .nh-jet line { stroke-dasharray: 6 7; }
+  .nh-dig-live .nh-jet line { animation: nh-jetflow 700ms linear infinite; }
+  @keyframes nh-jetflow { to { stroke-dashoffset: -13; } }
+
+  /* ---- PROCESS (dark) ----------------------------------------- */
+  .nh-process { padding: clamp(40px, 6vw, 90px) 0 calc(var(--nh-section-pad) + 70px); }
+  .nh-steps { position: relative; max-width: 720px; margin: 44px auto 0; }
+  .nh-steps::before {
+    content: ""; position: absolute; left: 21px; top: 8px; bottom: 8px; width: 2px;
+    background: var(--pit-border);
+  }
+  .nh-step { position: relative; padding: 0 0 42px 72px; }
+  .nh-step:last-child { padding-bottom: 0; }
+  .nh-step-rule {
+    position: absolute; left: 21px; top: 8px; bottom: 0; width: 2px;
+    background: var(--pit-accent); transform: scaleY(0); transform-origin: top;
+    transition: transform 700ms var(--nh-ease-settle);
+  }
+  .nh-step.in-view .nh-step-rule { transform: scaleY(1); }
+  .nh-step-dot {
+    position: absolute; left: 8px; top: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--pit-card); border: 2px solid var(--pit-border);
+    display: grid; place-items: center;
+    font-size: 0.75rem; font-weight: 800; color: var(--pit-text-dim);
+    transition: border-color 400ms var(--nh-ease-quick), color 400ms var(--nh-ease-quick);
+  }
+  .nh-step.in-view .nh-step-dot { border-color: var(--pit-accent); color: var(--pit-accent); }
+  .nh-step h3 { margin: 2px 0 8px; font-size: clamp(1.125rem, 1rem + 0.6vw, 1.375rem); font-weight: 700; color: var(--pit-text); }
+  .nh-step p { margin: 0; color: var(--pit-text-muted); line-height: 1.65; max-width: 56ch; }
+
+  /* ---- ESTIMATOR BRIDGE (card straddles dark -> cream) -------- */
+  .nh-bridge { background: var(--dark-bg); padding: 0 0 var(--nh-section-pad); }
+  .nh-bridge-card {
+    max-width: 980px; margin: 0 auto; transform: translateY(-96px); margin-bottom: -30px;
+    background: var(--dark-card); border-radius: 10px;
+    box-shadow: 0 32px 64px -28px rgba(10,24,16,0.5);
+    border: 1px solid var(--border-subtle);
+    padding: clamp(30px, 5vw, 56px);
+    display: grid; grid-template-columns: 3fr 2fr; gap: clamp(24px, 4vw, 48px); align-items: center;
+  }
+  .nh-bridge-quote {
+    border-left: 3px solid var(--green-brand); padding-left: 20px;
+  }
+  .nh-bridge-quote .nh-stars { color: var(--green-brand); letter-spacing: 3px; font-size: 0.95rem; margin-bottom: 8px; }
+  .nh-bridge-quote p { margin: 0 0 10px; font-size: 0.95rem; line-height: 1.6; color: var(--text-muted); font-style: italic; }
+  .nh-bridge-quote cite { font-style: normal; font-size: 0.8125rem; font-weight: 700; color: var(--text-primary); }
+
+  /* ---- SERVICES (cream) ---------------------------------------- */
+  .nh-services { background: var(--dark-bg); padding: 0 0 var(--nh-section-pad); }
+  .nh-services-grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px; margin-top: 40px;
+  }
+  .nh-service-card {
+    position: relative; display: block; border-radius: 8px; overflow: hidden;
+    text-decoration: none; background: var(--pit-deepest);
+    height: 300px;
+  }
+  .nh-service-card img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transition: transform 600ms var(--nh-ease-settle), opacity 600ms var(--nh-ease-settle);
+    opacity: 0.85;
+  }
+  .nh-service-card::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(10,24,16,0.9) 0%, rgba(10,24,16,0.42) 45%, rgba(10,24,16,0.05) 80%);
+  }
+  .nh-service-card:hover img, .nh-service-card:focus-visible img { transform: scale(1.045); opacity: 1; }
+  .nh-service-card:focus-visible { outline: 3px solid var(--green-brand); outline-offset: 3px; }
+  .nh-service-copy { position: absolute; left: 20px; right: 20px; bottom: 18px; z-index: 1; }
+  .nh-service-copy h3 { margin: 0 0 5px; color: var(--pit-text); font-size: 1.2rem; font-weight: 800; }
+  .nh-service-copy p { margin: 0; color: var(--pit-text-muted); font-size: 0.85rem; line-height: 1.5; }
+  .nh-services-more { margin-top: 26px; text-align: center; }
+  .nh-inline-link { color: var(--green-brand); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .nh-inline-link:hover, .nh-inline-link:focus-visible { color: var(--green-dark); }
+
+  /* ---- PROOF (cream) ------------------------------------------- */
+  .nh-proof { background: var(--dark-bg); padding: 0 0 var(--nh-section-pad); }
+  .nh-strip {
+    display: flex; gap: 16px; overflow-x: auto; padding: 34px var(--container-pad) 10px;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    max-width: 1200px; margin: 0 auto;
+    scrollbar-color: var(--green-brand) transparent;
+  }
+  .nh-strip figure {
+    flex: 0 0 auto; width: clamp(230px, 26vw, 300px); margin: 0; scroll-snap-align: start;
+  }
+  .nh-strip img {
+    width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; display: block;
+    box-shadow: 0 20px 40px -22px rgba(10,24,16,0.4);
+  }
+  .nh-strip figcaption { font-size: 0.8125rem; color: var(--text-dim); margin-top: 9px; letter-spacing: 0.02em; }
+  .nh-reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px; }
+  .nh-review {
+    background: var(--dark-card); border: 1px solid var(--border-subtle); border-radius: 8px;
+    padding: 24px;
+  }
+  .nh-review .nh-stars { color: var(--green-brand); letter-spacing: 3px; margin-bottom: 10px; }
+  .nh-review p { margin: 0 0 14px; font-size: 0.92rem; line-height: 1.65; color: var(--text-muted); }
+  .nh-review footer { font-size: 0.8125rem; font-weight: 700; color: var(--text-primary); }
+  .nh-review footer span { display: block; font-weight: 500; color: var(--text-dim); margin-top: 2px; }
+  .nh-aggregate { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; }
+  .nh-aggregate strong { font-size: clamp(2.25rem, 1.5rem + 3.5vw, 4rem); font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .nh-aggregate .nh-stars { color: var(--green-brand); font-size: 1.15rem; letter-spacing: 4px; }
+  .nh-aggregate small { font-size: 0.8125rem; color: var(--text-dim); font-weight: 600; }
+
+  /* ---- THE BLOKE (cream, split) --------------------------------- */
+  .nh-bloke { background: var(--dark-bg); padding: 0 0 var(--nh-section-pad); }
+  .nh-bloke .nh-split { grid-template-columns: 5fr 7fr; }
+  .nh-phone-big {
+    display: inline-block; margin-top: 20px; text-decoration: none;
+    font-size: clamp(1.6rem, 1.2rem + 2.2vw, 2.6rem); font-weight: 800; letter-spacing: -0.01em;
+    color: var(--green-dark);
+  }
+  .nh-phone-big:hover, .nh-phone-big:focus-visible { color: var(--green-brand); text-decoration: underline; text-underline-offset: 6px; }
+  .nh-phone-small-note { font-size: 0.8125rem; color: var(--text-dim); margin-top: 6px; }
+
+  /* ---- AREA + FAQ (cream) ---------------------------------------- */
+  .nh-area { background: var(--dark-bg); padding: 0 0 var(--nh-section-pad); }
+  .nh-area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 72px); align-items: start; }
+  .nh-faq details {
+    border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--dark-card);
+    padding: 0 20px; margin-bottom: 10px;
+  }
+  .nh-faq summary {
+    cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;
+    gap: 14px; padding: 17px 0; font-weight: 700; font-size: 0.98rem; color: var(--text-primary);
+  }
+  .nh-faq summary::-webkit-details-marker { display: none; }
+  .nh-faq summary::after {
+    content: ""; flex: 0 0 auto; width: 10px; height: 10px;
+    border-right: 2px solid var(--green-brand); border-bottom: 2px solid var(--green-brand);
+    transform: rotate(45deg); transition: transform 200ms var(--nh-ease-quick); margin-right: 4px;
+  }
+  .nh-faq details[open] summary::after { transform: rotate(-135deg); }
+  .nh-faq details p { margin: 0 0 18px; font-size: 0.92rem; line-height: 1.65; color: var(--text-muted); }
+  .nh-towns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .nh-town {
+    padding: 8px 14px; border-radius: 999px; background: var(--dark-card);
+    border: 1px solid var(--border-subtle); font-size: 0.8125rem; font-weight: 600; color: var(--text-muted);
+  }
+
+  /* ---- FINAL CTA (dark band) -------------------------------------- */
+  .nh-final { position: relative; background: var(--pit-deepest); overflow: hidden; }
+  .nh-final-media { position: absolute; inset: 0; }
+  .nh-final-media img { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; opacity: 0.35; display: block; }
+  .nh-final-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,24,16,0.95), rgba(10,24,16,0.72)); }
+  .nh-final-inner { position: relative; z-index: 1; text-align: center; padding: var(--nh-section-pad) var(--container-pad); }
+  .nh-final .nh-h2 { color: var(--pit-text); }
+  .nh-final .nh-body { margin-left: auto; margin-right: auto; color: var(--pit-text-muted); }
+  .nh-final-ctas { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 30px; }
+
+  /* ---- Depth gauge rail (desktop only) ----------------------------- */
+  .nh-gauge {
+    position: fixed; right: 18px; top: 50%; transform: translateY(-50%);
+    height: 42vh; width: 34px; z-index: 60; display: none;
+    pointer-events: none;
+  }
+  .nh-gauge-track { position: absolute; right: 15px; top: 0; bottom: 0; width: 2px; background: rgba(27,112,70,0.22); }
+  .nh-gauge-fill { position: absolute; right: 15px; top: 0; width: 2px; height: 100%; background: var(--green-brand); transform: scaleY(0); transform-origin: top; }
+  .nh-gauge-tick { position: absolute; right: 10px; width: 12px; height: 1.5px; background: rgba(27,112,70,0.4); }
+  .nh-gauge-label {
+    position: absolute; right: 26px; transform: translateY(-50%);
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-dim); white-space: nowrap;
+  }
+  @media (min-width: 1100px) { .nh-gauge { display: block; } }
+
+  /* ---- Reveal system ------------------------------------------------
+     Pre-hidden states exist ONLY for JS + motion-tolerant users.
+     No-JS and reduced-motion users see everything, always. */
+  @media (prefers-reduced-motion: no-preference) {
+    html.js .nh-reveal {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 650ms var(--nh-ease-settle), transform 650ms var(--nh-ease-settle);
+      transition-delay: calc(var(--i, 0) * 90ms);
+    }
+    html.js .nh-reveal.in-view { opacity: 1; transform: none; }
+    html.js .nh-wipe { clip-path: inset(0 0 100% 0); transition: clip-path 850ms var(--nh-ease-settle); }
+    html.js .nh-wipe img { transform: scale(1.08); transition: transform 850ms var(--nh-ease-settle); }
+    html.js .nh-wipe.in-view { clip-path: inset(0 0 0 0); }
+    html.js .nh-wipe.in-view img { transform: scale(1); }
+    html.js .nh-hero-anim > * {
+      opacity: 0; transform: translateY(24px);
+      animation: nh-settle 700ms var(--nh-ease-settle) forwards;
+      animation-delay: calc(var(--i, 0) * 100ms + 150ms);
+    }
+    html.js .nh-hero-media img { animation: nh-photo-settle 1200ms var(--nh-ease-settle) both; }
+    @keyframes nh-settle { to { opacity: 1; transform: none; } }
+    @keyframes nh-photo-settle { from { transform: scale(1.05); } to { transform: scale(1); } }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nh-svc, .nh-svc .nh-svc-chip, .nh-svc .nh-svc-tick { opacity: 1; transform: none; transition: none; }
+    .nh-svc.found .nh-svc-halo, .nh-dig-live .nh-jet line { animation: none; }
+    .nh-step-rule { transform: scaleY(1); transition: none; }
+    .nh-service-card img, .nh-btn, .nh-btn::before { transition: none; }
+  }
+
+  /* ---- Responsive ---------------------------------------------------- */
+  @media (max-width: 900px) {
+    .nh-split, .nh-bloke .nh-split, .nh-bridge-card, .nh-area-grid { grid-template-columns: 1fr; }
+    .nh-services-grid { grid-template-columns: 1fr 1fr; }
+    .nh-split-media { order: -1; }
+    .nh-bridge-card { transform: translateY(-64px); margin-left: var(--container-pad); margin-right: var(--container-pad); }
+  }
+  @media (max-width: 600px) {
+    .nh-services-grid { grid-template-columns: 1fr; }
+    .nh-service-card { height: 240px; }
+    .nh-hero-inner { padding: 120px 0 130px; }
+    .nh-split-media img { height: 300px; }
+  }
+  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=GT-WB5M7MK8"></script>
+</head>
+<body>
+<div class="nh-page">
+
+<!-- include:start header -->
+<script src="/js/clarity.js?v=xmk1qbiqul"></script>
+<script src="/js/analytics.min.js?v=lead-tracking-20260722"></script>
+<header class="header-sticky">
+  <div class="top-bar">
+    <a href="tel:0408362590" data-phone-placement="header">0408 362 590</a>
+    <span>— Call James Direct</span>
+  </div>
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" aria-label="GreenVac Services — Home">
+        <img src="/images/logo.png" alt="GreenVac Services — Compact Hydrovac Canberra ACT" width="130" height="44">
+      </a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/services">Services</a>
+        <a href="/portfolio">Our Work</a>
+        <a href="/service-area">Service Area</a>
+        <a href="/contact">Contact</a>
+        <a href="/get-a-quote" class="nav-cta" target="_blank" rel="noopener">Job Estimator</a>
+      </div>
+      <button class="nav-hamburger" id="nav-hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="nav-mobile" aria-hidden="true">
+      <a href="/">Home</a>
+      <a href="/services">Services</a>
+      <a href="/portfolio">Our Work</a>
+      <a href="/service-area">Service Area</a>
+      <a href="/contact">Contact</a>
+      <a href="/get-a-quote" class="nav-mobile-cta" target="_blank" rel="noopener">Get a Job Estimate →</a>
+    </div>
+  </nav>
+</header>
+<!-- include:end header -->
+
+<main>
+
+  <!-- ================= HERO ================= -->
+  <section class="nh-hero" aria-label="GreenVac hydro excavation">
+    <div class="nh-hero-media" aria-hidden="true">
+      <img src="/images/hero-service-trench.webp" alt="" fetchpriority="high">
+    </div>
+    <div class="nh-container nh-hero-inner">
+      <div class="nh-hero-anim">
+        <p class="nh-eyebrow" style="--i:0">Hydro excavation — Canberra, ACT + Southern NSW</p>
+        <h1 class="nh-hero-title" style="--i:1">Dig around live services without wrecking them.</h1>
+        <p class="nh-hero-sub" style="--i:2">GreenVac is a one-man hydro excavation outfit. High-pressure water loosens the ground, the vacuum trailer sucks out the slurry — the dirt comes out, and the pipes, cables and tree roots stay in one piece.</p>
+        <div class="nh-hero-ctas" style="--i:3">
+          <a class="nh-btn nh-btn--onDark" href="/get-a-quote"><span>Get a rough price</span></a>
+          <a class="nh-btn-ghost" href="tel:0408362590" data-phone-placement="new-home-hero">Call James — 0408 362 590</a>
+        </div>
+        <p class="nh-hero-note" style="--i:4">Veteran owned and operated. Fully insured. Based out Braidwood way.</p>
+      </div>
+    </div>
+    <div class="nh-groundline" aria-hidden="true">
+      <svg viewBox="0 0 1440 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,58 C120,46 260,70 420,60 C580,50 690,74 860,64 C1030,54 1150,72 1290,62 C1360,57 1410,60 1440,56 L1440,90 L0,90 Z" fill="#F7F1E3"/>
+        <path d="M0,58 C120,46 260,70 420,60 C580,50 690,74 860,64 C1030,54 1150,72 1290,62 C1360,57 1410,60 1440,56" fill="none" stroke="#3ECF8E" stroke-width="1.5" opacity="0.7"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ================= STAKES ================= -->
+  <section class="nh-stakes" aria-label="Why careful digging matters">
+    <div class="nh-container">
+      <div class="nh-split">
+        <div>
+          <p class="nh-eyebrow nh-reveal" style="--i:0">The problem with buckets</p>
+          <h2 class="nh-h2 nh-reveal" style="--i:1">The cheapest dig is the one that doesn't hit anything.</h2>
+          <p class="nh-body nh-reveal" style="--i:2">Put a bucket through a gas main or an NBN trunk and a small job turns into an insurance claim and a street full of annoyed neighbours. Hand digging near services is slow, hard on the back, and still no guarantee.</p>
+          <p class="nh-body nh-reveal" style="--i:3">Water doesn't cut poly, copper or conduit. That's the whole point.</p>
+          <div class="nh-trust-row nh-reveal" style="--i:4">
+            <span class="nh-chip"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8.5L6 12.5L14 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Fully insured</span>
+            <span class="nh-chip"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8.5L6 12.5L14 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Veteran owned</span>
+            <span class="nh-chip"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8.5L6 12.5L14 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>One bloke, one rig</span>
+          </div>
+        </div>
+        <div class="nh-split-media nh-wipe">
+          <img src="/images/ndd-services-and-roots.webp" alt="Live services and tree roots exposed by hydro excavation, all intact" loading="lazy">
+        </div>
+      </div>
+    </div>
+    <div class="nh-descend" aria-hidden="true"></div>
+  </section>
+
+  <!-- ================= SIGNATURE CROSS-SECTION ================= -->
+  <section class="nh-dark" aria-label="What is buried under a dig site">
+    <div class="nh-dig-wrap" id="digWrap">
+      <div class="nh-dig-sticky">
+        <div class="nh-dig-head">
+          <p class="nh-eyebrow">Below the surface</p>
+          <h2 class="nh-h2">This is what's under your dig site.</h2>
+          <p class="nh-body">Power, gas, water, comms, roots. A bucket finds them the hard way. Water and vacuum find them without a scratch.</p>
+        </div>
+        <div class="nh-dig-figure">
+          <svg id="digSvg" viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cross-section of the ground showing a hydrovac trench exposing electricity, gas, water and communications lines, all intact and ticked off">
+            <defs>
+              <linearGradient id="stG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#171410" stop-opacity="0"/>
+                <stop offset="1" stop-color="#0A0805" stop-opacity="0.55"/>
+              </linearGradient>
+              <clipPath id="digClip"><rect id="digRect" x="620" y="118" width="150" height="0" rx="6"/></clipPath>
+            </defs>
+
+            <!-- sky strip + surface -->
+            <rect x="0" y="0" width="1200" height="118" fill="#0C1F14"/>
+            <path d="M0,116 C160,110 340,122 520,117 C700,112 900,121 1080,116 C1130,115 1180,117 1200,116 L1200,124 C1000,128 800,122 600,126 C400,130 180,124 0,126 Z" fill="#3B5C3F"/>
+
+            <!-- strata -->
+            <rect x="0" y="122" width="1200" height="438" fill="#6B5138"/>
+            <path d="M0,240 C220,226 430,254 640,242 C850,230 1040,252 1200,240 L1200,560 L0,560 Z" fill="#57422C"/>
+            <path d="M0,392 C240,378 460,404 700,392 C920,382 1080,400 1200,390 L1200,560 L0,560 Z" fill="#43331F"/>
+            <rect x="0" y="122" width="1200" height="438" fill="url(#stG)"/>
+
+            <!-- trailer rig silhouette at surface -->
+            <g fill="#0F2C1D" aria-hidden="true">
+              <rect x="790" y="62" width="150" height="42" rx="7"/>
+              <rect x="932" y="76" width="52" height="28" rx="4"/>
+              <circle cx="822" cy="110" r="12"/>
+              <circle cx="906" cy="110" r="12"/>
+              <rect x="778" y="96" width="176" height="10" rx="4"/>
+            </g>
+            <text x="865" y="50" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="700" font-size="13" fill="#8FA394" letter-spacing="1.5">THE RIG</text>
+
+            <!-- vacuum hose from trench to rig -->
+            <path id="hosePath" d="M695,150 C695,110 760,92 815,88" fill="none" stroke="#0F2C1D" stroke-width="9" stroke-linecap="round"/>
+
+            <!-- buried services -->
+            <g class="nh-svc" id="svcPower">
+              <circle class="nh-svc-halo" cx="695" cy="205" r="24" fill="none" stroke="#E8792B" stroke-width="3"/>
+              <rect x="560" y="197" width="270" height="16" rx="8" fill="#E8792B"/>
+              <g class="nh-svc-chip">
+                <rect x="836" y="188" width="128" height="30" rx="6" fill="#F4EFE2"/>
+                <text x="900" y="208" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="13" fill="#232A20" letter-spacing="1">ELECTRICITY</text>
+              </g>
+              <g class="nh-svc-tick">
+                <circle cx="822" cy="203" r="11" fill="#3ECF8E"/>
+                <path d="M816.5,203 L820.5,207 L827.5,199.5" stroke="#0C1F14" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </g>
+            <g class="nh-svc" id="svcGas">
+              <circle class="nh-svc-halo" cx="695" cy="285" r="24" fill="none" stroke="#F0C929" stroke-width="3"/>
+              <rect x="500" y="277" width="330" height="16" rx="8" fill="#F0C929"/>
+              <g class="nh-svc-chip">
+                <rect x="836" y="268" width="70" height="30" rx="6" fill="#F4EFE2"/>
+                <text x="871" y="288" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="13" fill="#232A20" letter-spacing="1">GAS</text>
+              </g>
+              <g class="nh-svc-tick">
+                <circle cx="822" cy="283" r="11" fill="#3ECF8E"/>
+                <path d="M816.5,283 L820.5,287 L827.5,279.5" stroke="#0C1F14" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </g>
+            <g class="nh-svc" id="svcWater">
+              <circle class="nh-svc-halo" cx="695" cy="365" r="26" fill="none" stroke="#4FA3E0" stroke-width="3"/>
+              <rect x="540" y="356" width="290" height="18" rx="9" fill="#4FA3E0"/>
+              <g class="nh-svc-chip">
+                <rect x="836" y="347" width="90" height="30" rx="6" fill="#F4EFE2"/>
+                <text x="881" y="367" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="13" fill="#232A20" letter-spacing="1">WATER</text>
+              </g>
+              <g class="nh-svc-tick">
+                <circle cx="822" cy="363" r="11" fill="#3ECF8E"/>
+                <path d="M816.5,363 L820.5,367 L827.5,359.5" stroke="#0C1F14" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </g>
+            <g class="nh-svc" id="svcComms">
+              <circle class="nh-svc-halo" cx="695" cy="445" r="22" fill="none" stroke="#E9E4D6" stroke-width="3"/>
+              <rect x="580" y="438" width="250" height="13" rx="6.5" fill="#E9E4D6"/>
+              <g class="nh-svc-chip">
+                <rect x="836" y="428" width="140" height="30" rx="6" fill="#F4EFE2"/>
+                <text x="906" y="448" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="13" fill="#232A20" letter-spacing="1">COMMS / NBN</text>
+              </g>
+              <g class="nh-svc-tick">
+                <circle cx="822" cy="443" r="11" fill="#3ECF8E"/>
+                <path d="M816.5,443 L820.5,447 L827.5,439.5" stroke="#0C1F14" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </g>
+
+            <!-- tree + roots on the left for context -->
+            <g aria-hidden="true">
+              <rect x="235" y="58" width="16" height="62" rx="6" fill="#0F2C1D"/>
+              <circle cx="243" cy="44" r="34" fill="#123125"/>
+              <path d="M243,122 C220,170 190,200 150,230 M243,122 C258,180 290,210 330,240 M243,122 C240,190 225,250 235,300" stroke="#4A3826" stroke-width="7" fill="none" stroke-linecap="round"/>
+            </g>
+
+            <!-- the trench: cavity revealed by scroll-driven clip -->
+            <g clip-path="url(#digClip)">
+              <rect x="620" y="118" width="150" height="400" fill="#2A1F13"/>
+              <path d="M628,118 L628,510 M762,118 L762,510" stroke="#1B140C" stroke-width="5"/>
+              <g class="nh-jet" stroke="#7FC8F0" stroke-width="3" stroke-linecap="round">
+                <line x1="658" y1="130" x2="648" y2="470"/>
+                <line x1="695" y1="130" x2="695" y2="480"/>
+                <line x1="732" y1="130" x2="742" y2="470"/>
+              </g>
+            </g>
+            <!-- wand marker travelling with dig depth -->
+            <g id="digWand" aria-hidden="true">
+              <rect x="688" y="96" width="14" height="30" rx="5" fill="#3ECF8E"/>
+            </g>
+            <!-- slurry blobs travelling up the hose (JS positions them) -->
+            <g id="blobs" fill="#8a6a4a" aria-hidden="true">
+              <circle r="5" opacity="0"/><circle r="4" opacity="0"/><circle r="5.5" opacity="0"/>
+              <circle r="4.5" opacity="0"/><circle r="5" opacity="0"/>
+            </g>
+          </svg>
+        </div>
+        <p class="nh-dig-hint" id="digHint">Keep scrolling to dig</p>
+      </div>
+    </div>
+
+    <!-- ================= PROCESS ================= -->
+    <div class="nh-process">
+      <div class="nh-container">
+        <p class="nh-eyebrow nh-reveal" style="--i:0">How it works</p>
+        <h2 class="nh-h2 nh-reveal" style="--i:1">Water in, slurry out. That's the trick.</h2>
+        <div class="nh-steps">
+          <div class="nh-step">
+            <div class="nh-step-rule" aria-hidden="true"></div>
+            <div class="nh-step-dot" aria-hidden="true">1</div>
+            <h3>High-pressure water breaks up the ground</h3>
+            <p>A hand-held wand, not a bucket. It cuts through clay and compacted fill but won't cut poly, copper, conduit or roots.</p>
+          </div>
+          <div class="nh-step">
+            <div class="nh-step-rule" aria-hidden="true"></div>
+            <div class="nh-step-dot" aria-hidden="true">2</div>
+            <h3>The vacuum pulls the slurry into the tank</h3>
+            <p>The trailer sucks the wet spoil straight up the hose. No spoil piles all over the yard unless you want them.</p>
+          </div>
+          <div class="nh-step">
+            <div class="nh-step-rule" aria-hidden="true"></div>
+            <div class="nh-step-dot" aria-hidden="true">3</div>
+            <h3>Clean hole, everything still attached</h3>
+            <p>You're left with a neat excavation and whatever was buried sitting there untouched. No teeth, no blades, nothing that can snag a cable.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ESTIMATOR BRIDGE ================= -->
+  <section class="nh-bridge" aria-label="Get a ballpark price">
+    <div class="nh-container">
+      <div class="nh-bridge-card">
+        <div>
+          <p class="nh-eyebrow" style="margin-bottom:10px;">No obligation, no hard sell</p>
+          <h2 class="nh-h2" style="margin-bottom:12px;">Get a rough number before anyone drives anywhere.</h2>
+          <p class="nh-body" style="margin-bottom:24px;">The estimator asks a few questions about your job and gives you a ballpark on the spot. It's not a binding quote and nobody's going to hound you — it's so you know what you're in for.</p>
+          <a class="nh-btn" href="/get-a-quote"><span>Try the job estimator</span></a>
+        </div>
+        <blockquote class="nh-bridge-quote">
+          <div class="nh-stars" aria-label="5 out of 5 stars">★★★★★</div>
+          <p>"James cleaned out the area perfectly and made my job 10 times easier. I will be using James for all my future hydrovac projects."</p>
+          <cite>Ned Klopf — Ned's Plumbing and Gas</cite>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SERVICES ================= -->
+  <section class="nh-services" aria-label="Services">
+    <div class="nh-container">
+      <p class="nh-eyebrow nh-reveal" style="--i:0">Services</p>
+      <h2 class="nh-h2 nh-reveal" style="--i:1">What people book the trailer for.</h2>
+      <p class="nh-body nh-reveal" style="--i:2">If the job is "dig near something expensive", it's probably one of these.</p>
+      <div class="nh-services-grid">
+        <a class="nh-service-card nh-reveal" style="--i:0" href="/services#ndd">
+          <img src="/images/service-ndd.webp" alt="" loading="lazy">
+          <div class="nh-service-copy"><h3>Non-Destructive Digging</h3><p>Dig around live services, roots and structures without damaging them.</p></div>
+        </a>
+        <a class="nh-service-card nh-reveal" style="--i:1" href="/services#potholing">
+          <img src="/images/service-potholing.webp" alt="" loading="lazy">
+          <div class="nh-service-copy"><h3>Utility Potholing</h3><p>Prove exactly where services run before anyone digs in anger.</p></div>
+        </a>
+        <a class="nh-service-card nh-reveal" style="--i:2" href="/services#trenching">
+          <img src="/images/service-trenching.webp" alt="" loading="lazy">
+          <div class="nh-service-copy"><h3>Precision Trenching</h3><p>Narrow trenches where a machine won't fit or isn't worth the risk.</p></div>
+        </a>
+        <a class="nh-service-card nh-reveal" style="--i:0" href="/services#leak">
+          <img src="/images/service-leak.webp" alt="" loading="lazy">
+          <div class="nh-service-copy"><h3>Leak Exposure</h3><p>Careful excavation around suspect pipes so your plumber can get at the problem.</p></div>
+        </a>
+        <a class="nh-service-card nh-reveal" style="--i:1" href="/services#cleaning">
+          <img src="/images/service-cleaning.webp" alt="" loading="lazy">
+          <div class="nh-service-copy"><h3>Pit &amp; Drain Cleaning</h3><p>Silt, sludge and debris out of pits, drains and cattle grids.</p></div>
+        </a>
+        <a class="nh-service-card nh-reveal" style="--i:2" href="/services#access">
+          <img src="/images/service-access.webp" alt="" loading="lazy">
+          <div class="nh-service-copy"><h3>Tight Access Work</h3><p>Backyards, side passages and courtyards a truck-mounted unit can't reach.</p></div>
+        </a>
+      </div>
+      <p class="nh-services-more nh-reveal">Not sure which one your job is? <a class="nh-inline-link" href="/get-a-quote">The estimator sorts it out.</a></p>
+    </div>
+  </section>
+
+  <!-- ================= PROOF ================= -->
+  <section class="nh-proof" aria-label="Real jobs and reviews">
+    <div class="nh-container">
+      <p class="nh-eyebrow nh-reveal" style="--i:0">Proof</p>
+      <h2 class="nh-h2 nh-reveal" style="--i:1">Jobs, not stock photos.</h2>
+      <p class="nh-body nh-reveal" style="--i:2">Every photo on this site is from a real GreenVac job. Muddy pits, exposed mains, tight side-access — this is what the work actually looks like.</p>
+    </div>
+    <div class="nh-strip" aria-label="Photos from recent jobs">
+      <figure><img src="/images/port-01.webp" alt="Hydrovac excavation exposing buried services" loading="lazy"><figcaption>Service exposure</figcaption></figure>
+      <figure><img src="/images/port-02.webp" alt="Narrow trench cut by hydro excavation" loading="lazy"><figcaption>Precision trench</figcaption></figure>
+      <figure><img src="/images/port-04.webp" alt="Potholing to locate underground utilities" loading="lazy"><figcaption>Utility potholing</figcaption></figure>
+      <figure><img src="/images/port-05.webp" alt="Tight access dig in a residential yard" loading="lazy"><figcaption>Tight access</figcaption></figure>
+      <figure><img src="/images/port-09.webp" alt="Excavation around tree roots without damage" loading="lazy"><figcaption>Around the roots</figcaption></figure>
+      <figure><img src="/images/port-11.webp" alt="Clean excavation finished by hydrovac" loading="lazy"><figcaption>The tidy result</figcaption></figure>
+    </div>
+    <div class="nh-container">
+      <div class="nh-aggregate nh-reveal">
+        <strong>5.0</strong>
+        <span class="nh-stars" aria-hidden="true">★★★★★</span>
+        <small>Every Google review. All of them.</small>
+      </div>
+      <div class="nh-reviews">
+        <article class="nh-review nh-reveal" style="--i:0">
+          <div class="nh-stars" aria-hidden="true">★★★★★</div>
+          <p>"The work he has done has been quality and an absolute must if you are working around old and not well recorded utilities."</p>
+          <footer>Marshall</footer>
+        </article>
+        <article class="nh-review nh-reveal" style="--i:1">
+          <div class="nh-stars" aria-hidden="true">★★★★★</div>
+          <p>"Very professional with great care and attention to the site and surrounding garden. Great communication throughout with a successful result."</p>
+          <footer>Myles Chandler</footer>
+        </article>
+        <article class="nh-review nh-reveal" style="--i:2">
+          <div class="nh-stars" aria-hidden="true">★★★★★</div>
+          <p>"James was timely, efficient, professional and did a great job. Would highly recommend."</p>
+          <footer>Magdalena Juric</footer>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= THE BLOKE ================= -->
+  <section class="nh-bloke" aria-label="About James">
+    <div class="nh-container">
+      <div class="nh-split">
+        <div class="nh-split-media nh-wipe">
+          <img src="/images/james.webp" alt="James from GreenVac water-jetting around exposed valves in a dug pit" loading="lazy" style="object-position: center 30%;">
+        </div>
+        <div>
+          <p class="nh-eyebrow nh-reveal" style="--i:0">Who turns up</p>
+          <h2 class="nh-h2 nh-reveal" style="--i:1">One bloke, one rig. You deal with James the whole way.</h2>
+          <p class="nh-body nh-reveal" style="--i:2">James quotes the job, James does the job. He's usually on the tools during the day, so if the phone rings out, leave a message or use the estimator — he'll get back to you when he can.</p>
+          <p class="nh-body nh-reveal" style="--i:3">No call centre. No "your call is important to us".</p>
+          <div class="nh-reveal" style="--i:4">
+            <a class="nh-phone-big" href="tel:0408362590" data-phone-placement="new-home-bloke">0408 362 590</a>
+            <p class="nh-phone-small-note">7am – 5:30pm, Monday to Saturday</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= AREA + FAQ ================= -->
+  <section class="nh-area" aria-label="Service area and common questions">
+    <div class="nh-container">
+      <div class="nh-area-grid">
+        <div>
+          <p class="nh-eyebrow nh-reveal" style="--i:0">Where he works</p>
+          <h2 class="nh-h2 nh-reveal" style="--i:1">Canberra and a fair way past it.</h2>
+          <p class="nh-body nh-reveal" style="--i:2">Based out Braidwood way, working across the ACT and regularly further afield. Somewhere else? Ask — travel gets priced upfront, not smuggled into the bill.</p>
+          <div class="nh-towns nh-reveal" style="--i:3">
+            <span class="nh-town">Canberra</span><span class="nh-town">Queanbeyan</span>
+            <span class="nh-town">Braidwood</span><span class="nh-town">Bungendore</span>
+            <span class="nh-town">Yass</span><span class="nh-town">Goulburn</span>
+            <span class="nh-town">Batemans Bay</span>
+          </div>
+          <p class="nh-body nh-reveal" style="margin-top:18px; --i:4"><a class="nh-inline-link" href="/service-area">See the full service area</a></p>
+        </div>
+        <div class="nh-faq">
+          <details class="nh-reveal" style="--i:0">
+            <summary>Do I need Dial Before You Dig first?</summary>
+            <p>Yes — it's free and it's the law for most jobs. James works off the plans, then the hydrovac proves what's actually down there, because the plans and the ground don't always agree.</p>
+          </details>
+          <details class="nh-reveal" style="--i:1">
+            <summary>Can the trailer get to a backyard job?</summary>
+            <p>Usually. The rig stays on the driveway or street and the hoses come to the dig — that's the point of a compact setup. Tight side access is most of the work he does. A photo of the access with your enquiry helps a lot.</p>
+          </details>
+          <details class="nh-reveal" style="--i:2">
+            <summary>What if the job turns out bigger than it looked?</summary>
+            <p>James tells you before it becomes a bill. The estimate is a starting point, and any change gets talked about on site first — no surprise line items.</p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FINAL CTA ================= -->
+  <section class="nh-final" aria-label="Get a price or call">
+    <div class="nh-final-media" aria-hidden="true">
+      <img src="/images/hero-great-trenching.webp" alt="" loading="lazy">
+    </div>
+    <div class="nh-final-inner">
+      <h2 class="nh-h2 nh-reveal" style="--i:0">Righto. Want a number?</h2>
+      <p class="nh-body nh-reveal" style="--i:1">Use the estimator any time, day or night. Or ring James — and if he's elbow-deep in a trench, leave a message and he'll get back to you when he can.</p>
+      <div class="nh-final-ctas nh-reveal" style="--i:2">
+        <a class="nh-btn nh-btn--onDark" href="/get-a-quote"><span>Get a rough price</span></a>
+        <a class="nh-btn-ghost" href="tel:0408362590" data-phone-placement="new-home-final">Call 0408 362 590</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Depth gauge scroll rail (desktop only, decorative) -->
+<div class="nh-gauge" aria-hidden="true">
+  <div class="nh-gauge-track"></div>
+  <div class="nh-gauge-fill" id="gaugeFill"></div>
+  <div class="nh-gauge-tick" style="top:0%"></div><div class="nh-gauge-label" style="top:0%">0 m</div>
+  <div class="nh-gauge-tick" style="top:33%"></div><div class="nh-gauge-label" style="top:33%">0.5</div>
+  <div class="nh-gauge-tick" style="top:66%"></div><div class="nh-gauge-label" style="top:66%">1.0</div>
+  <div class="nh-gauge-tick" style="top:100%"></div><div class="nh-gauge-label" style="top:100%">1.5</div>
+</div>
+
+<!-- include:start footer -->
+<footer class="footer" role="contentinfo">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img src="/images/logo.png" alt="GreenVac Services" width="130" height="44" loading="lazy">
+      <p>Compact hydro excavation for trades across Canberra ACT and Southern NSW. One operator. One rig. Call James direct — he gets back to you when he can.</p>
+      <span class="veteran-badge">Veteran Owned &amp; Operated</span>
+    </div>
+    <div class="footer-col">
+      <h4>Services</h4>
+      <ul>
+        <li><a href="/services#ndd">Non-Destructive Digging</a></li>
+        <li><a href="/services#potholing">Utility Potholing</a></li>
+        <li><a href="/services#trenching">Trenching</a></li>
+        <li><a href="/services#leak">Leak Detection Support</a></li>
+        <li><a href="/services#cleaning">Pit &amp; Grid Cleaning</a></li>
+        <li><a href="/services#access">Tight Access Excavation</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/portfolio">Our Work</a></li>
+        <li><a href="/service-area">Service Area</a></li>
+        <li><a href="/get-a-quote" target="_blank" rel="noopener">Job Estimator</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contact James</h4>
+      <div class="footer-contact-item">
+        <span class="footer-contact-label">Phone</span>
+        <a href="tel:0408362590" class="footer-contact-val footer-phone-large" data-phone-placement="footer">0408 362 590</a>
+      </div>
+      <div class="footer-contact-item">
+        <span class="footer-contact-label">Email</span>
+        <a href="mailto:james@greenvac.com.au" class="footer-contact-val">james@greenvac.com.au</a>
+      </div>
+      <div class="footer-contact-item">
+        <span class="footer-contact-label">ABN</span>
+        <span class="footer-contact-val">21 786 181 535</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; <span class="copyright-year">2026</span> GreenVac Services. ABN 21 786 181 535. All rights reserved.</p>
+    <p>Hydro Excavation | Canberra ACT | Queanbeyan | Southern NSW</p>
+  </div>
+</footer>
+<!-- include:end footer -->
+
+<!-- include:start floating-call -->
+<a href="tel:0408362590" class="call-btn-float" aria-label="Call James" data-phone-placement="floating_call">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9a16 16 0 0 0 6.29 6.29l.61-.61a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+  Call James
+</a>
+<!-- include:end floating-call -->
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  document.documentElement.classList.add("js");
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var digSvg = document.getElementById("digSvg");
+  var digRect = document.getElementById("digRect");
+  var digWand = document.getElementById("digWand");
+  var digWrap = document.getElementById("digWrap");
+  var digHint = document.getElementById("digHint");
+  var MAX_DEPTH = 396;
+  var THRESHOLDS = [
+    { at: 0.28, id: "svcPower" },
+    { at: 0.48, id: "svcGas" },
+    { at: 0.68, id: "svcWater" },
+    { at: 0.86, id: "svcComms" },
+  ];
+
+  function completeDig() {
+    if (digRect) digRect.setAttribute("height", MAX_DEPTH);
+    if (digWand) digWand.setAttribute("transform", "translate(0," + MAX_DEPTH + ")");
+    THRESHOLDS.forEach(function (t) {
+      var el = document.getElementById(t.id);
+      if (el) el.classList.add("found");
+    });
+    if (digHint) digHint.textContent = "Everything found. Nothing broken.";
+  }
+
+  if (reduce || !("IntersectionObserver" in window)) {
+    completeDig();
+    return; /* static page: pre-states only exist under .js + no-preference */
+  }
+
+  /* ---- Reveal-on-scroll (fires once) ---- */
+  var revealIO = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in-view");
+        revealIO.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: "0px 0px -10% 0px" });
+  document.querySelectorAll(".nh-reveal, .nh-wipe, .nh-step").forEach(function (el) {
+    revealIO.observe(el);
+  });
+
+  /* ---- Signature dig: scroll progress + threshold reveals ---- */
+  var mobile = window.matchMedia("(max-width: 700px)").matches;
+  var found = {};
+  var jetLive = false;
+  var hosePath = document.getElementById("hosePath");
+  var blobs = document.querySelectorAll("#blobs circle");
+  var hoseLen = hosePath ? hosePath.getTotalLength() : 0;
+  var rafId = null;
+  var t0 = null;
+
+  function digProgress() {
+    if (!digWrap) return 1;
+    var vh = window.innerHeight;
+    var rect = digWrap.getBoundingClientRect();
+    var total = rect.height - vh;
+    if (total <= 0) return 1;
+    return Math.min(1, Math.max(0, -rect.top / total));
+  }
+
+  function applyDig(p) {
+    var depth = Math.round(p * MAX_DEPTH);
+    digRect.setAttribute("height", depth);
+    digWand.setAttribute("transform", "translate(0," + depth + ")");
+    THRESHOLDS.forEach(function (t) {
+      if (p >= t.at && !found[t.id]) {
+        found[t.id] = true; /* latched: never un-found on scroll-up jitter */
+        document.getElementById(t.id).classList.add("found");
+      }
+    });
+    if (digHint) {
+      if (p >= 0.98) digHint.textContent = "Everything found. Nothing broken.";
+      else if (p > 0.02) digHint.textContent = (p * 1.5).toFixed(1) + " m and counting";
+    }
+  }
+
+  function frame(ts) {
+    if (t0 === null) t0 = ts;
+    applyDig(digProgress());
+    /* slurry blobs ride the hose while the dig has started */
+    var p = digProgress();
+    for (var i = 0; i < blobs.length; i++) {
+      if (p > 0.05 && hoseLen) {
+        var u = ((ts - t0) * 0.00022 + i / blobs.length) % 1;
+        var pt = hosePath.getPointAtLength(u * hoseLen);
+        blobs[i].setAttribute("cx", pt.x);
+        blobs[i].setAttribute("cy", pt.y);
+        blobs[i].setAttribute("opacity", u < 0.06 || u > 0.94 ? 0 : 0.9);
+      } else {
+        blobs[i].setAttribute("opacity", 0);
+      }
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+
+  if (digSvg && digRect && digWrap) {
+    if (mobile) {
+      /* small screens: no sticky theatre — dig completes as it scrolls into view */
+      var digIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            digSvg.classList.add("nh-dig-live");
+            var start = null;
+            function mobileDig(ts) {
+              if (start === null) start = ts;
+              var p = Math.min(1, (ts - start) / 2600);
+              applyDig(p);
+              if (p < 1) requestAnimationFrame(mobileDig);
+            }
+            requestAnimationFrame(mobileDig);
+            digIO.disconnect();
+          }
+        });
+      }, { threshold: 0.35 });
+      digIO.observe(digWrap);
+      if (digHint) digHint.textContent = "";
+    } else {
+      var liveIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            digSvg.classList.add("nh-dig-live");
+            if (rafId === null) rafId = requestAnimationFrame(frame);
+          } else {
+            digSvg.classList.remove("nh-dig-live");
+            if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+          }
+        });
+      }, { threshold: 0 });
+      liveIO.observe(digWrap);
+    }
+  }
+
+  /* ---- Depth gauge rail ---- */
+  var gaugeFill = document.getElementById("gaugeFill");
+  if (gaugeFill && window.matchMedia("(min-width: 1100px)").matches) {
+    var ticking = false;
+    function gauge() {
+      var doc = document.documentElement;
+      var max = doc.scrollHeight - window.innerHeight;
+      gaugeFill.style.transform = "scaleY(" + (max > 0 ? window.scrollY / max : 0) + ")";
+      ticking = false;
+    }
+    window.addEventListener("scroll", function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(gauge); }
+    }, { passive: true });
+    gauge();
+  }
+})();
+</script>
+
+<script src="/js/main.min.js?v=flowform-20260503" defer></script>
+</body>
+</html>
