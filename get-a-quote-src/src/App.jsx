@@ -403,7 +403,7 @@ button{-webkit-tap-highlight-color:transparent;}
 .brand-wrap{display:flex;align-items:center;gap:12px;min-width:0;}
 .back-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--ink);display:grid;place-items:center;cursor:pointer;font-size:24px;line-height:1;flex:0 0 auto;}
 .back-btn:hover{border-color:var(--green);color:var(--green);}
-.logo-image{display:block;width:auto;height:56px;object-fit:contain;}
+.logo-image{display:block;width:auto;height:56px;object-fit:contain;clip-path:inset(24% 4% round 4px);}
 .step-label{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;}
 .progress{height:4px;background:#e7ebe6;}
 .progress-fill{height:100%;background:var(--green);transition:width .35s ease;}
