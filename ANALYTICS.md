@@ -30,16 +30,13 @@ The initial estimator CTA/open is not sent to Google Ads as a lead. Existing pag
 
 This static project has no environment-variable pipeline and the linked Vercel project currently has no environment variables. Public tag configuration therefore lives at the top of `js/analytics.js` and can be overridden before that script loads with `window.GreenVacAnalyticsConfig`.
 
-Existing value:
+Configured Google Ads values:
 
 - `googleAdsId`: `AW-17948622134`
+- `phoneConversionLabel`: `Yu01CPve8dQcELb6yO5C` for **GreenVac - Website phone lead**
+- `estimatorConversionLabel`: `2J6CxGOiNUCELb6yO5C` for **GreenVac - Estimator completed**
 
-Required values that are currently missing and deliberately left empty:
-
-- `phoneConversionLabel`: the label from **GreenVac - Website phone lead**
-- `estimatorConversionLabel`: the label from **GreenVac - Estimator completed**
-
-Use the label only, not the whole `AW-.../label` string. Empty or malformed labels disable the direct Ads conversion ping without throwing, navigating slowly, or generating a fake destination. Do not copy example labels into production.
+These public conversion identifiers are stored in the client-side helper, not as secrets. An explicit empty-string override or a malformed label disables the corresponding direct Ads conversion ping without throwing, delaying navigation, or generating a fake destination.
 
 ## Duplicate and environment protection
 
@@ -54,7 +51,7 @@ Use the label only, not the whole `AW-.../label` string. Empty or malformed labe
 1. Run `node --test tests/analytics.test.cjs`.
 2. Run `python deploy.py --dry-run` to rebuild the estimator and minified assets, bake shared partials, and execute repository gates.
 3. On a preview deployment, use Tag Assistant to confirm the existing Google tag, Clarity, and page views still load, while phone/estimator lead sends remain disabled by the hostname guard.
-4. After real labels are configured and deployed to production, use Tag Assistant Preview for one controlled phone-link click and one authorized test estimator submission. Confirm exactly one labeled `conversion` event per action and that the estimator event includes the generated `transaction_id`.
+4. After this change is deployed to production, use Tag Assistant Preview for one controlled phone-link click and one authorized test estimator submission. Confirm exactly one labeled `conversion` event per action and that the estimator event includes the generated `transaction_id`.
 5. Do not test by refreshing a success screen, and do not claim that a `tel:` click proves a completed call.
 
 ## Google Ads dashboard checklist
@@ -63,7 +60,7 @@ In **Goals > Conversions > Summary**:
 
 1. Create or identify **GreenVac - Website phone lead** with category **Contact**, source **Website**, count **One**, no invented value, and currency AUD only if the UI requires a currency.
 2. Create or identify **GreenVac - Estimator completed** with category **Submit lead form**, source **Website**, count **One**, no invented value, and currency AUD only if required.
-3. Copy the real event-snippet labels into the two empty configuration fields above. Keep the existing `AW-17948622134` ID.
+3. Verify the two configured event-snippet labels still match their Google Ads conversion actions. Keep the existing `AW-17948622134` ID.
 4. Make the two actions **Primary** for bidding unless verified completed-call tracking is intentionally the stronger phone source.
 5. Edit the **Page views** goal: turn off **Account default** and set its actions to **Secondary (observe only)**, or remove it from the campaign's selected goals. Page views must not be a primary lead goal.
 6. Check the **Search - Hydro Excavation - Canberra** campaign's goal settings. It should optimize for the Contact and Submit lead form actions, not Page views or estimator opening.

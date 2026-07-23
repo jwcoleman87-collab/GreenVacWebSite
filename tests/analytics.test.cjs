@@ -46,9 +46,7 @@ function phoneLink({ placement = "hero", selector = ".hero" } = {}) {
 }
 
 test("a production phone activation preserves existing events and sends one configured Ads conversion", () => {
-  const harness = createHarness({
-    config: { phoneConversionLabel: "phone_label" },
-  });
+  const harness = createHarness();
   const link = phoneLink();
   const target = { closest: (selector) => selector === 'a[href^="tel:"]' ? link : null };
 
@@ -58,7 +56,7 @@ test("a production phone activation preserves existing events and sends one conf
 
   assert.equal(prevented, false);
   assert.deepEqual(harness.gtagCalls.map((call) => call[1]), ["phone_call_click", "conversion"]);
-  assert.equal(harness.gtagCalls[1][2].send_to, "AW-17948622134/phone_label");
+  assert.equal(harness.gtagCalls[1][2].send_to, "AW-17948622134/Yu01CPve8dQcELb6yO5C");
   assert.equal(harness.gtagCalls[1][2].transaction_id, "phone-00000000-0000-4000-8000-000000000001");
   assert.equal(JSON.stringify(harness.posthogCalls), JSON.stringify([
     ["phone_call_click", { label: "Phone Call", placement: "hero" }],
@@ -76,7 +74,9 @@ test("loading an ordinary page or estimator page does not create a lead", () => 
 });
 
 test("missing Ads labels never produce a malformed conversion destination", () => {
-  const harness = createHarness();
+  const harness = createHarness({
+    config: { phoneConversionLabel: "", estimatorConversionLabel: "" },
+  });
 
   assert.equal(harness.window.GreenVacAnalytics.trackPhoneLead(phoneLink()), true);
   assert.deepEqual(harness.gtagCalls.map((call) => call[1]), ["phone_call_click"]);
@@ -103,14 +103,12 @@ test("preview and local hosts do not send lead analytics or Ads conversions", ()
 });
 
 test("an accepted estimator event is idempotent across rerenders and page calls", () => {
-  const harness = createHarness({
-    config: { estimatorConversionLabel: "estimator_label" },
-  });
+  const harness = createHarness();
 
   assert.equal(harness.window.GreenVacAnalytics.trackEstimatorLead({ eventId: "submission-1" }), true);
   assert.equal(harness.window.GreenVacAnalytics.trackEstimatorLead({ eventId: "submission-1" }), false);
   assert.deepEqual(harness.gtagCalls.map((call) => call[1]), ["form_submit", "conversion"]);
-  assert.equal(harness.gtagCalls[1][2].send_to, "AW-17948622134/estimator_label");
+  assert.equal(harness.gtagCalls[1][2].send_to, "AW-17948622134/2J6CxGOiNUCELb6yO5C");
   assert.equal(harness.gtagCalls[1][2].transaction_id, "submission-1");
 });
 

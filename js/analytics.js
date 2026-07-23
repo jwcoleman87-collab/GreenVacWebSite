@@ -11,11 +11,15 @@
   var suppliedConfig = window.GreenVacAnalyticsConfig || {};
   var config = {
     googleAdsId: suppliedConfig.googleAdsId || "AW-17948622134",
-    // Supply the label only (the part after AW-17948622134/) after the matching
-    // Google Ads conversion action has been created. Empty labels intentionally
-    // disable direct Ads conversion pings without disabling legacy analytics.
-    phoneConversionLabel: suppliedConfig.phoneConversionLabel || "",
-    estimatorConversionLabel: suppliedConfig.estimatorConversionLabel || "",
+    // These are public conversion-action labels (the part after
+    // AW-17948622134/). An explicit empty-string override intentionally disables
+    // the direct Ads conversion ping without disabling legacy analytics.
+    phoneConversionLabel: typeof suppliedConfig.phoneConversionLabel === "string"
+      ? suppliedConfig.phoneConversionLabel
+      : "Yu01CPve8dQcELb6yO5C",
+    estimatorConversionLabel: typeof suppliedConfig.estimatorConversionLabel === "string"
+      ? suppliedConfig.estimatorConversionLabel
+      : "2J6CxGOiNUCELb6yO5C",
     productionHosts: suppliedConfig.productionHosts || ["www.greenvac.com.au", "greenvac.com.au"],
   };
 
