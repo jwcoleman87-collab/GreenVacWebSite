@@ -522,23 +522,25 @@ p  { font-size: 0.95rem; color: var(--text-muted); line-height: 1.75; }
   max-width: var(--container-width);
   margin: 0 auto;
   padding: 0 var(--container-pad);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 32px;
+}
+@media (max-width: 900px) {
+  .trust-strip-inner { grid-template-columns: 1fr 1fr; gap: 26px 22px; }
 }
 .trust-item { display: flex; align-items: center; gap: 14px; }
 .trust-item-icon { font-size: 1.6rem; }
 .trust-item-label {
-  font-weight: 700;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
+  margin-bottom: 4px;
 }
-.trust-item-sub { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
-.trust-divider { width: 1px; height: 40px; background: var(--border-subtle); }
+.trust-item-sub { font-size: 0.8rem; line-height: 1.5; color: var(--text-muted); font-weight: 500; }
+.trust-divider { display: none; }
 
 /* ─── Section Headers ─────────────────────────────────────── */
 .section-header { margin-bottom: 52px; }
@@ -1621,16 +1623,16 @@ html.js .fade-up.visible { opacity: 1; transform: translateY(0); }
   .hero-visual-caption { display: block; margin-top: 14px; padding-top: 12px; }
   .hero-visual-caption strong { display: block; font-size: .84rem; }
   .hero-visual-caption span { display: block; margin-top: 5px; text-align: left; font-size: .68rem; }
-  .trust-strip-inner { gap: 20px; }
-  .trust-divider  { display: none; }
+  .trust-strip-inner { gap: 20px 18px; }
   .cta-actions    { flex-direction: column; }
   .footer-bottom  { flex-direction: column; text-align: center; }
   :root { --section-pad: 48px; --container-pad: 16px; }
   .why-grid img, .story-grid img { height: 220px !important; max-height: 220px !important; }
 
-  /* Trust strip: keep only "Compact Rig" + "Talk to James" */
-  .trust-strip-inner > div:nth-child(3),
-  .trust-strip-inner > div:nth-child(7) { display: none; }
+  /* Trust strip: compact labels, no seal icon at phone widths */
+  .trust-item { align-items: flex-start; }
+  .trust-item svg { display: none; }
+  .trust-item-label { font-size: 0.95rem; }
 
   /* Estimator strip: CTA section covers this */
   .estimator-strip { display: none; }
