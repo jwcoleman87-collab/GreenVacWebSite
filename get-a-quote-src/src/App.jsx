@@ -13,6 +13,8 @@ const jobTypes = [
     desc: "Safely dig around services, roots and structures.",
     image: "/images/ndd-services-and-roots.webp",
     imagePosition: "center 48%",
+    heroImage: "/images/hero.webp",
+    heroPosition: "center 55%",
     featured: true,
   },
   {
@@ -31,6 +33,8 @@ const jobTypes = [
     desc: "Small, targeted digs to locate underground services.",
     image: "/images/service-potholing-card.webp",
     imagePosition: "center 56%",
+    heroImage: "/images/service-potholing.webp",
+    heroPosition: "center 60%",
     featured: true,
   },
   {
@@ -47,6 +51,8 @@ const jobTypes = [
     shortLabel: "Under an obstacle",
     desc: "Create a route beneath a path, wall, driveway or roots.",
     image: "/images/ndd-tight-access.webp",
+    heroImage: "/images/hero-great-trenching.webp",
+    heroPosition: "center 50%",
     featured: false,
   },
   {
@@ -140,6 +146,7 @@ const accessCards = [
     label: "Open Access",
     sub: "Easy drive-up access",
     image: "/images/rig-access.webp",
+    imagePosition: "center 22%",
   },
   {
     id: "side",
@@ -158,6 +165,7 @@ const accessCards = [
     label: "Not Sure",
     sub: "A photo will help James assess it",
     image: "/images/tight-access.webp",
+    imagePosition: "center 40%",
   },
 ];
 
@@ -1103,7 +1111,12 @@ function S3({ onNext, onBack, ans, setAns }) {
                 onClick={() => setAns((current) => ({ ...current, access: card.id }))}
                 aria-pressed={selected}
               >
-                <img className="access-image" src={card.image} alt="" />
+                <img
+                  className="access-image"
+                  src={card.image}
+                  alt=""
+                  style={{ objectPosition: card.imagePosition || "center" }}
+                />
                 <div className="access-copy">
                   <div className="choice-label">{card.label}</div>
                   <div className="choice-sub">{card.sub}</div>
@@ -1377,9 +1390,9 @@ function S4({ onNext, onBack, ans }) {
 
       <div className="estimate-hero">
         <img
-          src={job?.image || "/images/ndd-hydrovac-method.webp"}
+          src={job?.heroImage || job?.image || "/images/ndd-hydrovac-method.webp"}
           alt=""
-          style={{ objectPosition: job?.imagePosition || "center" }}
+          style={{ objectPosition: job?.heroPosition || job?.imagePosition || "center" }}
         />
         <div className="estimate-hero-label">{job?.label} by GreenVac</div>
       </div>
@@ -1533,12 +1546,12 @@ function S5({ onNext, onBack, ans, setAns }) {
         </label>
         <div className="photo-examples" aria-label="Useful photo examples">
           {[
-            { image: "/images/rig-access.webp", label: "Where we can park" },
+            { image: "/images/rig-access.webp", label: "Where we can park", position: "center 22%" },
             { image: "/images/service-trenching-tight-access-card.webp", label: "The access route" },
             { image: "/images/ndd-exposed-pipe.webp", label: "The digging area" },
           ].map((example) => (
             <div className="photo-example" key={example.label}>
-              <img src={example.image} alt="" />
+              <img src={example.image} alt="" style={{ objectPosition: example.position || "center" }} />
               <span>{example.label}</span>
             </div>
           ))}
