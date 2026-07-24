@@ -25,6 +25,19 @@
 
   window.GreenVacAnalyticsConfig = config;
 
+  // On regular pages the Google tag bootstrap (main.js) loads after this
+  // helper, so a tel: click during page parse would find no window.gtag and
+  // the Ads conversion would be dropped. Installing the standard queueing
+  // stub here means early events land in dataLayer and gtag.js delivers the
+  // send_to conversion once it loads. On pages that already define gtag
+  // (the estimator, 404) this is a no-op.
+  if (typeof window.gtag !== "function") {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag() {
+      window.dataLayer.push(arguments);
+    };
+  }
+
   var onceInPage = {};
 
   function isProductionHost() {
