@@ -9,7 +9,7 @@ const analyticsSource = fs.readFileSync(
   "utf8",
 );
 
-function createHarness({ hostname = "www.greenvac.com.au", pathname = "/", config = {} } = {}) {
+function createHarness({ hostname = "www.greenvac.com.au", pathname = "/", config = {}, withGtag = true } = {}) {
   const listeners = {};
   const gtagCalls = [];
   const posthogCalls = [];
@@ -17,7 +17,6 @@ function createHarness({ hostname = "www.greenvac.com.au", pathname = "/", confi
   const window = {
     GreenVacAnalyticsConfig: config,
     crypto: { randomUUID: () => "00000000-0000-4000-8000-000000000001" },
-    gtag: (...args) => gtagCalls.push(args),
     location: { hostname, pathname },
     posthog: { capture: (...args) => posthogCalls.push(args) },
     sessionStorage: {
@@ -25,6 +24,9 @@ function createHarness({ hostname = "www.greenvac.com.au", pathname = "/", confi
       setItem: (key, value) => storage.set(key, value),
     },
   };
+  if (withGtag) {
+    window.gtag = (...args) => gtagCalls.push(args);
+  }
   const document = {
     addEventListener: (name, handler) => {
       listeners[name] = listeners[name] || [];
@@ -61,6 +63,32 @@ test("a production phone activation preserves existing events and sends one conf
   assert.equal(JSON.stringify(harness.posthogCalls), JSON.stringify([
     ["phone_call_click", { label: "Phone Call", placement: "hero" }],
   ]));
+});
+
+test("a phone activation before gtag.js loads queues the Ads conversion for later delivery", () => {
+  const harness = createHarness({ withGtag: false });
+
+  assert.equal(typeof harness.window.gtag, "function");
+  assert.equal(harness.window.dataLayer.length, 0);
+
+  assert.equal(harness.window.GreenVacAnalytics.trackPhoneLead(phoneLink()), true);
+
+  const queued = harness.window.dataLayer.map((entry) => Array.from(entry));
+  assert.equal(queued.length, 2);
+  assert.equal(queued[0][0], "event");
+  assert.equal(queued[0][1], "phone_call_click");
+  assert.equal(queued[1][0], "event");
+  assert.equal(queued[1][1], "conversion");
+  assert.equal(queued[1][2].send_to, "AW-17948622134/Yu01CPve8dQcELb6yO5C");
+  assert.equal(queued[1][2].transaction_id, "phone-00000000-0000-4000-8000-000000000001");
+});
+
+test("a supplied Google tag is never replaced by the queueing stub", () => {
+  const harness = createHarness();
+
+  assert.equal(harness.window.dataLayer, undefined);
+  harness.window.GreenVacAnalytics.trackPhoneLead(phoneLink());
+  assert.equal(harness.gtagCalls.length, 2);
 });
 
 test("loading an ordinary page or estimator page does not create a lead", () => {
