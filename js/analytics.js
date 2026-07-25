@@ -19,7 +19,16 @@
       : "Yu01CPve8dQcELb6yO5C",
     estimatorConversionLabel: typeof suppliedConfig.estimatorConversionLabel === "string"
       ? suppliedConfig.estimatorConversionLabel
-      : "2J6CxGOiNUCELb6yO5C",
+      : "7zJ6CKGOiNUcELb6yO5C",
+    // Google Ads supplies the estimator action with a flat value so accepted
+    // enquiries are comparable in reporting. This is a fixed non-personal
+    // figure, not a quoted job price, and is sent for the estimator only.
+    estimatorConversionValue: typeof suppliedConfig.estimatorConversionValue === "number"
+      ? suppliedConfig.estimatorConversionValue
+      : 1.0,
+    estimatorConversionCurrency: typeof suppliedConfig.estimatorConversionCurrency === "string"
+      ? suppliedConfig.estimatorConversionCurrency
+      : "AUD",
     productionHosts: suppliedConfig.productionHosts || ["www.greenvac.com.au", "greenvac.com.au"],
   };
 
@@ -41,7 +50,15 @@
 
   function gtagEvent(name, parameters) {
     if (!isProductionHost() || typeof window.gtag !== "function") return false;
-    window.gtag("event", name, parameters);
+    // Tracking must never surface as a user-facing failure. The estimator calls
+    // this from inside its submission try block, so a blocked, stubbed or
+    // throwing Google tag would otherwise show an error screen for an enquiry
+    // the server already accepted.
+    try {
+      window.gtag("event", name, parameters);
+    } catch (_error) {
+      return false;
+    }
     return true;
   }
 
@@ -51,14 +68,26 @@
     return config.googleAdsId + "/" + label;
   }
 
-  function adsConversion(label, transactionId) {
+  // monetary is optional. Only the estimator action is configured with a value,
+  // so the phone conversion payload stays exactly as Google Ads already
+  // receives it. A malformed value or currency is omitted rather than guessed.
+  function adsConversion(label, transactionId, monetary) {
     var destination = adsDestination(label);
     if (!destination) return false;
 
-    return gtagEvent("conversion", {
+    var payload = {
       send_to: destination,
       transaction_id: transactionId,
-    });
+    };
+
+    if (monetary && typeof monetary.value === "number" && isFinite(monetary.value)) {
+      payload.value = monetary.value;
+      if (typeof monetary.currency === "string" && /^[A-Z]{3}$/.test(monetary.currency)) {
+        payload.currency = monetary.currency;
+      }
+    }
+
+    return gtagEvent("conversion", payload);
   }
 
   function readSessionMarker(key) {
@@ -139,7 +168,10 @@
       lead_type: "estimator",
       event_id: eventId,
     });
-    adsConversion(config.estimatorConversionLabel, eventId);
+    adsConversion(config.estimatorConversionLabel, eventId, {
+      value: config.estimatorConversionValue,
+      currency: config.estimatorConversionCurrency,
+    });
 
     return true;
   }
