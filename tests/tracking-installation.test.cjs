@@ -126,6 +126,78 @@ test("estimator lead dispatch remains after accepted response and outside render
   assert.ok(estimator.indexOf("submitLockRef.current = false") > estimator.indexOf("catch {"));
 });
 
+test("opening the estimator and moving between steps sends no Google Ads conversion", () => {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+
+  // Step navigation and the estimator-open signal are PostHog-only engagement.
+  const navigation = estimator.slice(
+    estimator.indexOf("const next = () => {"),
+    estimator.indexOf("const back = () => {"),
+  );
+  assert.ok(navigation.includes("estimator_started"));
+  assert.ok(navigation.includes("estimator_step_"));
+  assert.equal(/gtag|GreenVacAnalytics|conversion|form_submit/.test(navigation), false);
+
+  // Exactly one lead dispatch exists in the whole estimator application.
+  assert.equal((estimator.match(/trackEstimatorLead/g) || []).length, 1);
+});
+
+test("the estimator submit handler refuses to dispatch before validation and acceptance", () => {
+  const estimator = read("get-a-quote-src/src/App.jsx");
+  const handler = estimator.indexOf("async function handleSubmit()");
+  const validationGuard = estimator.indexOf("!ans.acceptedTerms) return;", handler);
+  const request = estimator.indexOf("fetch(FORM_ENDPOINT", handler);
+  const acceptanceGuard = estimator.indexOf("if (!response.ok", handler);
+  const leadDispatch = estimator.indexOf("trackEstimatorLead", handler);
+
+  assert.ok(handler > 0);
+  assert.ok(validationGuard > handler);
+  assert.ok(validationGuard < request, "validation gate precedes the request");
+  assert.ok(request < acceptanceGuard, "request precedes the acceptance check");
+  assert.ok(acceptanceGuard < leadDispatch, "acceptance check precedes the lead dispatch");
+
+  // Only a non-personal generated id crosses into the shared helper.
+  const dispatch = estimator.slice(leadDispatch, estimator.indexOf("}", leadDispatch) + 1);
+  assert.match(dispatch, /trackEstimatorLead\(\{\s*eventId:/);
+  for (const field of ["ans.name", "ans.email", "ans.mobile", "ans.suburb", "request.body"]) {
+    assert.equal(dispatch.includes(field), false, field);
+  }
+});
+
+test("the shipped helper carries the corrected estimator destination and no obsolete label", () => {
+  const OBSOLETE_ESTIMATOR_LABEL = "2J6CxGOiNUCELb6yO5C";
+  const source = read("js/analytics.js");
+  const minified = read("js/analytics.min.js");
+
+  for (const [name, contents] of [["source", source], ["minified", minified]]) {
+    assert.ok(contents.includes("7zJ6CKGOiNUcELb6yO5C"), `${name} estimator label`);
+    assert.ok(contents.includes("Yu01CPve8dQcELb6yO5C"), `${name} phone label preserved`);
+    assert.ok(contents.includes("AW-17948622134"), `${name} Ads id preserved`);
+    assert.equal(contents.includes(OBSOLETE_ESTIMATOR_LABEL), false, `${name} obsolete label`);
+  }
+
+  // The obsolete destination must not survive anywhere that ships or documents.
+  const shipped = [
+    ...activeHtmlFiles().map((file) => fs.readFileSync(file, "utf8")),
+    source,
+    minified,
+    read("js/main.js"),
+    read("js/main.min.js"),
+    read("ANALYTICS.md"),
+  ].join("\n");
+  assert.equal(shipped.includes(OBSOLETE_ESTIMATOR_LABEL), false);
+
+  // Conversion labels stay in the shared helper, never inlined into UI bundles.
+  const bundle = fs
+    .readdirSync(path.join(root, "get-a-quote", "assets"))
+    .filter((entry) => entry.endsWith(".js"))
+    .map((entry) => fs.readFileSync(path.join(root, "get-a-quote", "assets", entry), "utf8"))
+    .join("\n");
+  assert.ok(bundle.length > 0);
+  assert.equal(/AW-\d+\//.test(bundle), false, "no raw Ads destination inside the estimator bundle");
+  assert.equal(bundle.includes("7zJ6CKGOiNUcELb6yO5C"), false);
+});
+
 test("estimator shows the price before requesting contact details", () => {
   const estimator = read("get-a-quote-src/src/App.jsx");
   const estimateComponent = estimator.indexOf("function S4");

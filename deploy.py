@@ -9,9 +9,13 @@ regression, or ANY emoji can never reach production:
     1. build the estimator SPA (vite)        -> get-a-quote/
     2. bake.py            inject partials/*.html into the pages
     3. minify_assets.py   regenerate css/js .min files
-    4. check_contrast.py  WCAG 2.1 AA gate
-    5. check_no_emoji.py  hard no-emoji gate (bespoke SVG / text only)
-    6. vercel deploy --prod   (skipped with --dry-run)
+    4. node --test tests/ tracking + pricing regression gate
+    5. check_contrast.py  WCAG 2.1 AA gate
+    6. check_no_emoji.py  hard no-emoji gate (bespoke SVG / text only)
+    7. vercel deploy --prod   (skipped with --dry-run)
+
+The regression gate runs after minification so it inspects the exact
+minified assets that ship, not just their sources.
 
 This is the canonical way to ship the site -- prefer it over running the
 build scripts by hand, so the gates always run before a deploy.
@@ -27,6 +31,7 @@ STEPS = [
     ("Build estimator SPA", "npm --prefix get-a-quote-src run build", True),
     ("Bake partials",       [sys.executable, "bake.py"],              False),
     ("Minify CSS/JS",       [sys.executable, "minify_assets.py"],     False),
+    ("Tracking tests",      "node --test tests/*.test.cjs",           True),
     ("Contrast gate (AA)",  [sys.executable, "check_contrast.py"],    False),
     ("No-emoji gate",       [sys.executable, "check_no_emoji.py"],    False),
 ]
