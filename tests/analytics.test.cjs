@@ -126,6 +126,52 @@ test("an accepted estimator event is idempotent across rerenders and page calls"
   assert.equal(harness.gtagCalls[1][2].transaction_id, "submission-1");
 });
 
+test("an estimator remount that mints a fresh event id cannot send a second conversion", () => {
+  // Reproduces back-navigation mid-submission: S6 unmounts, its refs reset, and
+  // the remounted component generates a different event id for the same visit.
+  const harness = createHarness();
+
+  assert.equal(harness.window.GreenVacAnalytics.trackEstimatorLead({ eventId: "attempt-A" }), true);
+  assert.equal(harness.window.GreenVacAnalytics.trackEstimatorLead({ eventId: "attempt-B" }), false);
+  assert.equal(harness.window.GreenVacAnalytics.trackEstimatorLead({ eventId: "attempt-C" }), false);
+
+  const conversions = harness.gtagCalls.filter((call) => call[1] === "conversion");
+  assert.equal(conversions.length, 1);
+  assert.equal(conversions[0][2].transaction_id, "attempt-A");
+  assert.equal(harness.gtagCalls.filter((call) => call[1] === "form_submit").length, 1);
+});
+
+test("the session latch holds when sessionStorage is unavailable", () => {
+  // Private modes can throw on sessionStorage; the in-page map must still cap
+  // the visit at one estimator conversion across remounts.
+  const harness = createHarness();
+  harness.window.sessionStorage = {
+    getItem: () => {
+      throw new Error("blocked");
+    },
+    setItem: () => {
+      throw new Error("blocked");
+    },
+  };
+
+  assert.equal(harness.window.GreenVacAnalytics.trackEstimatorLead({ eventId: "attempt-A" }), true);
+  assert.equal(harness.window.GreenVacAnalytics.trackEstimatorLead({ eventId: "attempt-B" }), false);
+  assert.equal(harness.gtagCalls.filter((call) => call[1] === "conversion").length, 1);
+});
+
+test("a phone lead is never suppressed by the estimator session latch", () => {
+  const harness = createHarness();
+
+  harness.window.GreenVacAnalytics.trackEstimatorLead({ eventId: "attempt-A" });
+  assert.equal(harness.window.GreenVacAnalytics.trackPhoneLead(phoneLink()), true);
+  assert.equal(harness.window.GreenVacAnalytics.trackPhoneLead(phoneLink()), true);
+
+  const phoneConversions = harness.gtagCalls
+    .filter((call) => call[1] === "conversion")
+    .filter((call) => call[2].send_to.endsWith("Yu01CPve8dQcELb6yO5C"));
+  assert.equal(phoneConversions.length, 2);
+});
+
 test("the accepted estimator conversion uses the exact GreenVac - Estimator completed destination, value and currency", () => {
   const harness = createHarness();
 

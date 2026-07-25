@@ -36,6 +36,10 @@
 
   var onceInPage = {};
 
+  // Not keyed on an event id, so it survives an estimator remount that would
+  // otherwise generate a fresh id for the same visit.
+  var ESTIMATOR_SESSION_MARKER = "greenvac_estimator_lead_sent";
+
   function isProductionHost() {
     return config.productionHosts.indexOf(window.location.hostname) !== -1;
   }
@@ -157,7 +161,17 @@
     var eventId = options && options.eventId ? String(options.eventId) : createEventId("estimator");
     var marker = "greenvac_estimator_lead:" + eventId;
     if (readSessionMarker(marker)) return false;
+
+    // The estimator's submit lock and event id live in component refs, so a
+    // remount (for example tapping back while a submission is in flight, then
+    // sending again) mints a fresh id that the per-id marker above cannot see.
+    // This latch caps Google Ads at one estimator lead per browser session,
+    // which is the correct direction for lead counting. PostHog still records
+    // every submission, so repeat sends remain observable in product analytics.
+    if (readSessionMarker(ESTIMATOR_SESSION_MARKER)) return false;
+
     writeSessionMarker(marker);
+    writeSessionMarker(ESTIMATOR_SESSION_MARKER);
 
     // Keep the existing successful-estimator Google event intact. No visitor
     // details or estimator answers are included in either Google payload.
