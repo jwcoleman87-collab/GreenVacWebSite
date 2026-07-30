@@ -384,7 +384,7 @@ p  { font-size: 0.95rem; color: var(--text-muted); line-height: 1.75; }
   margin-bottom: 20px;
   line-height: .96;
   color: var(--text-primary);
-  font-size: clamp(2.8rem, 4.8vw, 4.35rem);
+  font-size: clamp(2.8rem, 4.45vw, 3.75rem);
   letter-spacing: -0.055em;
 }
 .hero-text h1 span,
@@ -1562,7 +1562,7 @@ html.js .fade-up.visible { opacity: 1; transform: translateY(0); }
   .portfolio-grid       { grid-template-columns: repeat(2, 1fr); }
   .blog-grid            { grid-template-columns: repeat(2, 1fr); }
   .hero-content         { grid-template-columns: minmax(330px, .85fr) minmax(0, 1.15fr); gap: 32px; }
-  .hero-text h1         { font-size: clamp(2.8rem, 5.8vw, 4rem); }
+  .hero-text h1         { font-size: clamp(2.7rem, 4.85vw, 4rem); }
 }
 @media (max-width: 900px) {
   .info-layout { grid-template-columns: 1fr; gap: 40px; }
@@ -1602,7 +1602,7 @@ html.js .fade-up.visible { opacity: 1; transform: translateY(0); }
   .hero { min-height: 0; }
   .hero-content   { padding: 34px var(--container-pad) 40px; gap: 26px; }
   .hero-text      { max-width: 100%; }
-  .hero-text h1  { font-size: clamp(2.55rem, 12vw, 3.3rem); margin-bottom: 16px; }
+  .hero-text h1  { font-size: clamp(2.2rem, 11.2vw, 3.3rem); margin-bottom: 16px; }
   .hero-subtitle  { font-size: .9rem !important; line-height: 1.55; margin-bottom: 20px; }
   .hero-actions   { flex-direction: column; align-items: stretch; gap: 10px; }
   .hero-actions .btn { width: 100%; justify-content: center; }
