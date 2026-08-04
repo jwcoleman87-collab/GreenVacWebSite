@@ -222,23 +222,27 @@ test("estimator keeps the first choice focused on three featured services plus m
   assert.equal(estimator.includes("fonts.googleapis.com"), false);
 });
 
-test("standard and uncertain NDD depth preserve the production price calculation", () => {
+test("uncertain NDD depth is conservatively priced and remains a review", () => {
   const baseAnswers = {
     jobType: "service-exposure",
     subtype: "Dig Around Known Services",
-    exposureCount: "3",
+    exposureCount: 4,
     access: "open",
     ground: "normal",
     congestion: "clear",
-    spoil: "leave-onsite",
+    spoil: "leave",
     suburb: "Canberra",
   };
 
-  for (const exposureDepth of ["standard", "unsure"]) {
-    const estimate = calculateEstimatorPrice({ ...baseAnswers, exposureDepth });
-    assert.deepEqual(
-      { low: estimate.low, high: estimate.high, labour: estimate.labour, travel: estimate.travel },
-      { low: 820, high: 940, labour: 823, travel: 0 },
-    );
-  }
+  const deep = calculateEstimatorPrice({ ...baseAnswers, exposureDepth: "deep" });
+  const unsure = calculateEstimatorPrice({ ...baseAnswers, exposureDepth: "unsure" });
+
+  assert.deepEqual(
+    { low: deep.low, high: deep.high, labour: deep.labour, travel: deep.travel, needsReview: deep.needsReview },
+    { low: 920, high: 1040, labour: 800, travel: 110, needsReview: false },
+  );
+  assert.deepEqual(
+    { low: unsure.low, high: unsure.high, labour: unsure.labour, travel: unsure.travel, needsReview: unsure.needsReview },
+    { low: 920, high: 1040, labour: 800, travel: 110, needsReview: true },
+  );
 });

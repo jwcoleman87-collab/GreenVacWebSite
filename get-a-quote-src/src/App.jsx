@@ -49,7 +49,7 @@ async function mockSubmission() {
 //
 // `id` values are pricing inputs -- calcEstimate reads them directly -- so they
 // are never renamed. `hidden` retires an option from the customer-facing list
-// while leaving its id, subtypes and pricing branch completely intact.
+// while leaving its id and descriptive fields available for historic state.
 const jobTypes = [
   {
     id: "service-exposure",
@@ -113,8 +113,8 @@ const jobTypes = [
   },
   {
     // Retired from the customer-facing list as GreenVac moves to
-    // Non-Destructive Trenching. Kept whole -- id, subtypes, detail rows and
-    // pricing branch -- so restored answers still price exactly as before.
+    // Non-Destructive Trenching. Kept for historic-state compatibility, but it
+    // can no longer reach any calculated-pricing branch.
     id: "cattle-grid",
     label: "Cattle Grid Cleaning",
     shortLabel: "Cattle grid",
@@ -293,9 +293,19 @@ const urgencyCards = [
 ];
 
 const exposureCountCards = [
-  { id: "1-2", label: "1-2 Spots", sub: "One or two targeted areas", art: "spots-few" },
-  { id: "3+", label: "3 or More", sub: "Several separate locations", art: "spots-many" },
-  { id: "unsure", label: "Not Sure", sub: "Give us your best description later", art: "unsure", quiet: true },
+  {
+    id: "more-than-10",
+    label: "More Than 10",
+    sub: "James will review the larger scope",
+    art: "spots-many",
+  },
+  {
+    id: "unsure",
+    label: "Not Sure",
+    sub: "James can help work out the count",
+    art: "unsure",
+    quiet: true,
+  },
 ];
 
 const exposureDepthCards = [
@@ -360,6 +370,14 @@ function getJob(jobType) {
 
 function findLabel(cards, id) {
   return cards.find((item) => item.id === id)?.label;
+}
+
+function getExposureCountLabel(value) {
+  const exactCount = Number(value);
+  if (Number.isInteger(exactCount) && exactCount >= 1 && exactCount <= 10) {
+    return `${exactCount} ${exactCount === 1 ? "Spot" : "Spots"}`;
+  }
+  return findLabel(exposureCountCards, value);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1041,6 +1059,7 @@ button{-webkit-tap-highlight-color:transparent;}
 .quick-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
 .quick-btn{min-height:44px;border:1.5px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);padding:6px 18px;font-size:13px;font-weight:700;cursor:pointer;}
 .quick-btn.selected{border-color:var(--green);background:var(--green-soft);color:var(--green);}
+.count-review-grid{margin-top:10px;}
 
 /* --- summaries and fields ----------------------------------------------- */
 .summary-pill{display:flex;gap:18px;flex-wrap:wrap;background:var(--green-soft);border:1px solid var(--green-mid);border-radius:var(--radius-sm);padding:14px 16px;margin-top:10px;}
@@ -1608,6 +1627,11 @@ function S2({ onNext, onBack, ans, setAns, cancel }) {
   const jobType = ans.jobType;
   const metres = ans.metres || 5;
   const isExposure = jobType === "service-exposure" || jobType === "potholing";
+  const exactExposureCount = Number(ans.exposureCount);
+  const exposureCount =
+    Number.isInteger(exactExposureCount) && exactExposureCount >= 1 && exactExposureCount <= 10
+      ? exactExposureCount
+      : null;
   const ready = isDetailStepReady(ans);
 
   const set = (key) => (value) => setAns((current) => ({ ...current, [key]: value }));
@@ -1675,7 +1699,54 @@ function S2({ onNext, onBack, ans, setAns, cancel }) {
           count="Question 1 of 2"
           title={jobType === "potholing" ? "How many potholes are likely?" : "How many areas need digging?"}
         >
-          <ArtGrid cards={exposureCountCards} value={ans.exposureCount} onChange={set("exposureCount")} />
+          <div className="metre-control" role="group" aria-label="Approximate number of spots">
+            <button
+              className="metre-btn"
+              type="button"
+              onClick={() => set("exposureCount")(Math.max(1, (exposureCount || 1) - 1))}
+              aria-label="Reduce spot count"
+              disabled={exposureCount === 1}
+            >
+              &minus;
+            </button>
+            <div className="metre-value" aria-live="polite">
+              {exposureCount || "\u2014"}{" "}
+              <span className="metre-unit">{exposureCount === 1 ? "spot" : "spots"}</span>
+            </div>
+            <button
+              className="metre-btn"
+              type="button"
+              onClick={() => set("exposureCount")(Math.min(10, (exposureCount || 0) + 1))}
+              aria-label="Increase spot count"
+              disabled={exposureCount === 10}
+            >
+              +
+            </button>
+          </div>
+          <div className="quick-row" aria-label="Choose an exact spot count">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={`quick-btn${exposureCount === value ? " selected" : ""}`}
+                onClick={() => set("exposureCount")(value)}
+                aria-pressed={exposureCount === value}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+          <div className="art-grid count-review-grid">
+            {exposureCountCards.map((card) => (
+              <Pick
+                key={card.id}
+                card={card}
+                variant="art"
+                selected={ans.exposureCount === card.id}
+                onSelect={set("exposureCount")}
+              />
+            ))}
+          </div>
         </Question>
         <Question id="q-exposure-depth" count="Question 2 of 2" title="What depth is expected?">
           <ArtGrid cards={exposureDepthCards} value={ans.exposureDepth} onChange={set("exposureDepth")} />
@@ -1685,7 +1756,7 @@ function S2({ onNext, onBack, ans, setAns, cancel }) {
     summary = [
       {
         label: jobType === "potholing" ? "Potholes" : "Areas",
-        value: findLabel(exposureCountCards, ans.exposureCount),
+        value: getExposureCountLabel(ans.exposureCount),
       },
       { label: "Depth", value: findLabel(exposureDepthCards, ans.exposureDepth) },
     ];
@@ -1880,13 +1951,15 @@ function S3({ onNext, onBack, ans, setAns, cancel }) {
   );
 }
 
-// Pricing engine. These values and formulas are intentionally retained from
-// the production estimator; the redesign changes presentation and ordering.
-const RATE = 235;
-const RATE_COMP = 260;
-const FLOOR_INT = 650;
-const FLOOR_DISP = 790;
-const BUFFER = 0.15;
+// Pricing engine. GreenVac charges one onsite hourly rate, with a three-hour
+// onsite minimum plus one fixed travel charge for every automatically priced
+// job. The 15% range buffer applies to onsite work only; the fixed travel
+// amount is added unchanged to both ends before upward rounding.
+const RATE = 165;
+const MINIMUM_ONSITE_HOURS = 3;
+const MINIMUM_ONSITE_LABOUR = RATE * MINIMUM_ONSITE_HOURS;
+const FIXED_TRAVEL_CHARGE = 110;
+const RANGE_BUFFER = 0.15;
 
 const depthMod = {
   "300mm": 0.90,
@@ -1899,6 +1972,7 @@ const widthMod = { narrow: 1.00, standard: 1.05, wide: 1.15, custom: 1.20 };
 const accessMod = { open: 1.00, side: 1.05, difficult: 1.25, unsure: 1.10 };
 const groundMod = { normal: 1.00, hard: 1.20, unsure: 1.10 };
 const congestionMod = { clear: 1.00, congested: 1.25, unsure: 1.10 };
+const exposureDepthMod = { shallow: 0.95, deep: 1.20, unsure: 1.20 };
 const trenchRates = {
   "Electrical Trench": 0.12,
   "Plumbing Trench": 0.11,
@@ -1913,9 +1987,151 @@ const pitHours = {
   large: { light: 1.50, heavy: 2.50, unsure: 2.00 },
   unsure: { light: 1.00, heavy: 1.75, unsure: 1.25 },
 };
-const cattleHours = { light: 1.5, moderate: 2.5, heavy: 4.0, unsure: 2.5 };
-const obstacleHours = { short: 2.5, long: 5.0, unsure: 3.5 };
+const obstacleShortHours = 2.5;
 const leakHours = { localised: 2.0, wide: 4.5, unsure: 3.0 };
+
+// Suburb is mandatory but postcode is optional, so the named ACT localities
+// keep ordinary Canberra jobs automatic even when the visitor omits a postcode.
+// Exact matching is deliberate: an address such as "Yass Street" must not turn
+// a Canberra job into an out-of-area result.
+const CORE_AREA_NAMES = new Set([
+  "act",
+  "acton",
+  "ainslie",
+  "amaroo",
+  "aranda",
+  "banks",
+  "barton",
+  "beard",
+  "belconnen",
+  "bonner",
+  "bonython",
+  "braddon",
+  "braidwood",
+  "bruce",
+  "bungendore",
+  "calwell",
+  "campbell",
+  "canberra",
+  "canberra airport",
+  "canberra city",
+  "capital hill",
+  "casey",
+  "chapman",
+  "charnwood",
+  "chifley",
+  "chisholm",
+  "city",
+  "civic",
+  "conder",
+  "cook",
+  "coombs",
+  "crace",
+  "crestwood",
+  "curtin",
+  "deakin",
+  "denman prospect",
+  "dickson",
+  "downer",
+  "duffy",
+  "dunlop",
+  "duntroon",
+  "evatt",
+  "fadden",
+  "farrer",
+  "fisher",
+  "florey",
+  "flynn",
+  "forde",
+  "forrest",
+  "franklin",
+  "fraser",
+  "fyshwick",
+  "garran",
+  "gilmore",
+  "googong",
+  "gungahlin",
+  "gordon",
+  "gowrie",
+  "greenway",
+  "griffith",
+  "hackett",
+  "hall",
+  "harrison",
+  "hawker",
+  "higgins",
+  "holder",
+  "holt",
+  "hughes",
+  "hume",
+  "isaacs",
+  "isabella plains",
+  "jacka",
+  "jerrabomberra",
+  "kaleen",
+  "kambah",
+  "karabar",
+  "kenny",
+  "kingston",
+  "latham",
+  "lawson",
+  "lyneham",
+  "lyons",
+  "macarthur",
+  "macgregor",
+  "macnamara",
+  "mawson",
+  "mckellar",
+  "melba",
+  "mitchell",
+  "molonglo valley",
+  "monash",
+  "moncrieff",
+  "narrabundah",
+  "ngunnawal",
+  "nicholls",
+  "o'connor",
+  "o'malley",
+  "oaks estate",
+  "oxley",
+  "page",
+  "palmerston",
+  "parkes",
+  "pearce",
+  "phillip",
+  "pialligo",
+  "queanbeyan",
+  "queanbeyan east",
+  "queanbeyan west",
+  "red hill",
+  "reid",
+  "richardson",
+  "rivett",
+  "russell",
+  "scullin",
+  "spence",
+  "stirling",
+  "strathnairn",
+  "symonston",
+  "taylor",
+  "theodore",
+  "throsby",
+  "torrens",
+  "tuggeranong",
+  "turner",
+  "uriarra village",
+  "wanniassa",
+  "waramanga",
+  "watson",
+  "weetangera",
+  "weston",
+  "weston creek",
+  "whitlam",
+  "woden",
+  "woden valley",
+  "wright",
+  "yarralumla",
+]);
 
 function buildLocation(ans) {
   const streetAndSuburb = [ans.address?.trim(), ans.suburb?.trim()].filter(Boolean).join(", ");
@@ -1939,7 +2155,7 @@ function getJobDetailRows(ans) {
   } else if (ans.jobType === "service-exposure" || ans.jobType === "potholing") {
     add(
       ans.jobType === "potholing" ? "Potholes" : "Areas",
-      exposureCountCards.find((item) => item.id === ans.exposureCount)?.label,
+      getExposureCountLabel(ans.exposureCount),
     );
     add("Depth", exposureDepthCards.find((item) => item.id === ans.exposureDepth)?.label);
   } else if (ans.jobType === "leak-exposure") {
@@ -1959,28 +2175,98 @@ function getJobDetailRows(ans) {
   return rows;
 }
 
+function normalizeArea(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\s+(?:australian capital territory|new south wales|act|nsw)$/i, "")
+    .trim();
+}
+
+function isCoreOperatingArea(ans) {
+  const postcodeMatch = String(ans.postcode || "").match(/\b\d{4}\b/);
+  if (postcodeMatch) {
+    const postcode = Number(postcodeMatch[0]);
+    if (
+      (postcode >= 2600 && postcode <= 2618) ||
+      (postcode >= 2900 && postcode <= 2920) ||
+      postcode === 2620 ||
+      postcode === 2621 ||
+      postcode === 2622
+    ) {
+      return true;
+    }
+  }
+
+  return CORE_AREA_NAMES.has(normalizeArea(ans.suburb));
+}
+
+function manualEstimate(reviewReason) {
+  return {
+    low: null,
+    high: null,
+    labour: 0,
+    travel: 0,
+    needsReview: true,
+    manualOnly: true,
+    reviewReason,
+  };
+}
+
+function getManualReviewReason(ans) {
+  if (ans.jobType === "other") {
+    return "This job sits outside the work the estimator can measure reliably. James will read the details and work out a useful ballpark himself.";
+  }
+
+  if (ans.jobType === "cattle-grid") {
+    return "Cattle grid cleaning is not available through the estimator. James needs to review the job before discussing price or availability.";
+  }
+
+  if (ans.jobType === "trenching" && Number(ans.metres || 5) > 100) {
+    return "Trenches over 100 metres need a scope review before pricing. James will check the route, staging and site conditions rather than guess at a number.";
+  }
+
+  if (ans.jobType === "service-exposure" || ans.jobType === "potholing") {
+    const count = Number(ans.exposureCount);
+    if (!Number.isInteger(count) || count < 1 || count > 10) {
+      return ans.exposureCount === "more-than-10" || count > 10
+        ? "More than 10 spots needs a scope review so James can assess the locations and likely staging before pricing it."
+        : "An exact approximate count from 1 to 10 is needed for a reliable ballpark. James can help work that out from the job details.";
+    }
+  }
+
+  if (ans.jobType === "tunnel-bore" && ans.boreDist !== "short") {
+    return "Routes of 5 metres or more, or an uncertain distance, need James to review the obstacle and site before working out a useful ballpark.";
+  }
+
+  if (ans.spoil === "remove-all" || ans.spoil === "unsure") {
+    return "Spoil disposal depends on the volume, material and tipping arrangements. James will review those details before including removal in a price.";
+  }
+
+  const hasLocation = Boolean(ans.suburb?.trim() || ans.postcode?.trim());
+  if (hasLocation && !isCoreOperatingArea(ans)) {
+    return "This location is outside GreenVac's normal Braidwood, Bungendore, Queanbeyan and Canberra/ACT operating area. James will review the travel before pricing it.";
+  }
+
+  return null;
+}
+
+function roundUpToTen(value) {
+  return Math.ceil(value / 10) * 10;
+}
+
 function calcEstimate(ans) {
   const jobType = ans.jobType;
 
-  // "Something else" is unknown work by definition. Every other branch below
-  // rests on a measured quantity -- metres, spot count, pit size, distance --
-  // and this one has none. Producing a number from an invented hours bucket
-  // would look exactly like the estimates that are grounded, so the estimator
-  // declines and hands the job to James. No price is better than a wrong one.
-  if (jobType === "other") {
-    return {
-      low: null,
-      high: null,
-      labour: 0,
-      travel: 0,
-      needsReview: true,
-      manualOnly: true,
-    };
-  }
+  // Open-ended, disposal-heavy, retired and out-of-area work stops before any
+  // rate, hours or multiplier is touched. These jobs get a useful explanation,
+  // not a partial price that omits the uncertain part.
+  const manualReviewReason = getManualReviewReason(ans);
+  if (manualReviewReason) return manualEstimate(manualReviewReason);
 
   let setupHours = 0;
   let productionHours = 0;
-  let rate = RATE;
   let needsReview = false;
 
   const accessMultiplier = accessMod[ans.access] || 1.00;
@@ -2002,16 +2288,13 @@ function calcEstimate(ans) {
     }
   } else if (jobType === "service-exposure" || jobType === "potholing") {
     setupHours = 1.25;
-    const count = Number.parseInt(ans.exposureCount, 10) || 1;
-    const depthMultiplier =
-      ans.exposureDepth === "shallow"
-        ? 0.95
-        : ans.exposureDepth === "deep"
-          ? 1.20
-          : 1.00;
+    const count = Number(ans.exposureCount);
+    // The unknown choice deliberately uses the deepest known allowance. It is
+    // therefore never cheaper than either known depth and remains flagged for
+    // James to review.
+    const depthMultiplier = exposureDepthMod[ans.exposureDepth] || exposureDepthMod.unsure;
     productionHours = count * 0.75 * depthMultiplier;
     if (
-      ans.exposureCount === "unsure" ||
       ans.exposureDepth === "unsure" ||
       ans.subtype === "Not Sure"
     ) {
@@ -2025,19 +2308,12 @@ function calcEstimate(ans) {
     setupHours = 1.25;
     productionHours = (pitHours[ans.pitSize] || pitHours.medium)[ans.pitFill] || 1.0;
     if (ans.pitSize === "unsure" || ans.pitFill === "unsure") needsReview = true;
-  } else if (jobType === "cattle-grid") {
-    setupHours = 1.5;
-    rate = RATE_COMP;
-    const count = ans.cattleCount === "3plus" ? 3 : Number.parseInt(ans.cattleCount, 10) || 1;
-    productionHours = count * (cattleHours[ans.cattleFill] || 2.5);
-    if (ans.cattleCount === "unsure" || ans.cattleFill === "unsure") needsReview = true;
   } else if (jobType === "tunnel-bore") {
     setupHours = 1.5;
-    productionHours = obstacleHours[ans.boreDist] || 3.5;
-    if (ans.boreDist !== "short" || ans.subtype === "Not Sure") needsReview = true;
+    productionHours = obstacleShortHours;
+    if (ans.subtype === "Not Sure") needsReview = true;
   }
 
-  if (ans.spoil === "remove-all" || ans.spoil === "unsure") needsReview = true;
   if (
     ans.access === "unsure" ||
     ans.ground === "unsure" ||
@@ -2048,23 +2324,22 @@ function calcEstimate(ans) {
 
   const adjustedLabour =
     (setupHours + productionHours) *
-    rate *
+    RATE *
     combinedMultiplier;
 
-  const locationText = buildLocation(ans);
-  const outerArea = /braidwood|goulburn|yass|cooma|bungendore/i.test(locationText);
-  const travel = outerArea ? 80 : 0;
-  const rawLow = adjustedLabour + travel;
-  const internalLow = Math.max(FLOOR_INT, rawLow);
-  const low = Math.max(FLOOR_DISP, Math.round(internalLow / 10) * 10);
-  const high = Math.round((low * (1 + BUFFER)) / 10) * 10;
+  const onsiteLow = Math.max(MINIMUM_ONSITE_LABOUR, adjustedLabour);
+  const onsiteHigh = onsiteLow * (1 + RANGE_BUFFER);
+  const low = roundUpToTen(onsiteLow + FIXED_TRAVEL_CHARGE);
+  const high = roundUpToTen(onsiteHigh + FIXED_TRAVEL_CHARGE);
 
   return {
     low,
     high,
     labour: Math.round(adjustedLabour),
-    travel,
+    travel: FIXED_TRAVEL_CHARGE,
     needsReview,
+    manualOnly: false,
+    reviewReason: null,
   };
 }
 
@@ -2124,7 +2399,7 @@ function S4({ onNext, onBack, ans, cancel }) {
           <div className="estimate-kicker">Priced by James</div>
           <div className="manual-line">A ballpark needs a proper look</div>
           <div className="estimate-gst">
-            The estimator prices jobs it can measure. This one needs James to assess it first.
+            {estimate.reviewReason}
           </div>
           <div className="privacy-proof">
             <CheckIcon size={13} />
@@ -2176,10 +2451,7 @@ function S4({ onNext, onBack, ans, cancel }) {
             { label: "Spoil", value: findLabel(spoilCards, ans.spoil) },
             ...(estimate.manualOnly
               ? []
-              : [{
-                  label: "Travel",
-                  value: estimate.travel ? `$${estimate.travel} outer-area allowance included` : "Included",
-                }]),
+              : [{ label: "Travel", value: `$${estimate.travel} + GST fixed travel included` }]),
           ]}
         />
       </div>
@@ -2363,7 +2635,7 @@ function buildRequestDetails(ans) {
       ? "NO AUTOMATIC ESTIMATE - NEEDS PRICING BY JAMES"
       : `INDICATIVE ESTIMATE: $${estimate.low.toLocaleString()} - $${estimate.high.toLocaleString()} + GST`,
     estimate.manualOnly
-      ? "The customer was shown no price. The estimator does not price this job type."
+      ? `The customer was shown no price. Review reason: ${estimate.reviewReason}`
       : estimate.needsReview ? "Flagged for manual review" : "Standard estimate",
     "----------------------------",
     "",
@@ -2380,6 +2652,9 @@ function buildRequestDetails(ans) {
     `Ground conditions: ${ground || "Not provided"}`,
     `Services nearby: ${servicesNearby || "Not provided"}`,
     `Spoil: ${spoil || "Not provided"}`,
+    estimate.manualOnly
+      ? "Travel: Requires James's review"
+      : `Travel: $${estimate.travel} + GST fixed travel included`,
     `Site notes: ${ans.siteNotes || "Not provided"}`,
     "",
     "SITE",
@@ -2444,8 +2719,14 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
     formData.append("email", ans.email || "");
     formData.append("job_type", ans.jobType || "");
     formData.append("subtype", ans.subtype || "");
-    formData.append("estimate_low", String(request.estimate.low || ""));
-    formData.append("estimate_high", String(request.estimate.high || ""));
+    formData.append(
+      "estimate_low",
+      request.estimate.manualOnly ? "" : `$${request.estimate.low.toLocaleString()} + GST`,
+    );
+    formData.append(
+      "estimate_high",
+      request.estimate.manualOnly ? "" : `$${request.estimate.high.toLocaleString()} + GST`,
+    );
     formData.append("needs_review", request.estimate.needsReview ? "yes" : "no");
     formData.append("address", request.address || "");
     formData.append("suburb", ans.suburb || "");
@@ -2561,7 +2842,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
         <div className="estimate-card main manual">
           <div className="estimate-kicker">Priced by James</div>
           <div className="manual-line">No automatic estimate for this one</div>
-          <div className="estimate-gst">He will come back to you with a ballpark once he has read the details.</div>
+          <div className="estimate-gst">{request.estimate.reviewReason}</div>
         </div>
       ) : (
         <div className="estimate-card main">

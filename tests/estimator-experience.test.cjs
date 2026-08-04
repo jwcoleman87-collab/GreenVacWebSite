@@ -138,7 +138,7 @@ test("a job chosen inside the expanded list stays visible once it closes", () =>
 
 /* --- the retired cattle grid --------------------------------------------- */
 
-test("cattle grid is gone from the customer-facing list but still prices", async () => {
+test("cattle grid is gone from the customer-facing list and cannot calculate", async () => {
   const { visibleExtraJobs, featuredJobs } = await loadState();
   const jobTypes = shippedJobTypes();
   const shown = [...featuredJobs(jobTypes), ...visibleExtraJobs(jobTypes)].map((job) => job.id);
@@ -147,10 +147,11 @@ test("cattle grid is gone from the customer-facing list but still prices", async
   assert.ok(shown.includes("other"), "replaced by a manual-review path");
   assert.ok(jobTypes.some((job) => job.id === "cattle-grid" && job.hidden));
 
-  // Backward compatibility: restored answers still reach the same branch.
+  // Backward compatibility: restored answers reach a friendly manual-review
+  // result, never the retired premium-rate pricing branch.
   assert.ok(estimator.includes('jobType === "cattle-grid"'));
-  assert.ok(estimator.includes("cattleHours"));
-  assert.ok(estimator.includes("RATE_COMP"));
+  assert.equal(estimator.includes("cattleHours"), false);
+  assert.equal(estimator.includes("RATE_COMP"), false);
 });
 
 /* --- cancellation -------------------------------------------------------- */
@@ -422,34 +423,111 @@ test("every Not sure option uses the same quiet treatment", () => {
   assert.ok(checked >= 12, `expected the quiet treatment on many options, saw ${checked}`);
 });
 
-/* --- pricing is untouched ------------------------------------------------ */
+/* --- approved pricing revision ------------------------------------------- */
 
 const SITE = { access: "open", ground: "normal", congestion: "clear", spoil: "leave", suburb: "Canberra" };
 const ROUGH = { access: "difficult", ground: "hard", congestion: "congested", spoil: "remove-all", suburb: "Goulburn" };
 
-// Captured from the shipped estimator before the redesign. Any change here is a
-// change to what GreenVac charges and must be deliberate.
-const PRICES = [
-  ["trenching", { ...SITE, jobType: "trenching", subtype: "Electrical Trench", metres: 10, depth: "450mm", width: "narrow" }, { low: 790, high: 910, labour: 635, travel: 0, needsReview: false }],
-  ["trenching rough", { ...ROUGH, jobType: "trenching", subtype: "Not Sure", metres: 50, depth: "custom", width: "custom" }, { low: 5020, high: 5770, labour: 4944, travel: 80, needsReview: true }],
-  ["ndd deep", { ...SITE, jobType: "service-exposure", subtype: "Dig Around Known Services", exposureCount: "3+", exposureDepth: "deep" }, { low: 930, high: 1070, labour: 928, travel: 0, needsReview: false }],
-  ["ndd shallow", { ...SITE, jobType: "service-exposure", subtype: "Work Around Tree Roots", exposureCount: "1-2", exposureDepth: "shallow" }, { low: 790, high: 910, labour: 461, travel: 0, needsReview: false }],
-  ["ndd unsure", { ...SITE, jobType: "service-exposure", subtype: "Not Sure", exposureCount: "unsure", exposureDepth: "unsure" }, { low: 790, high: 910, labour: 470, travel: 0, needsReview: true }],
-  ["potholing rough", { ...ROUGH, jobType: "potholing", subtype: "Multiple Services", exposureCount: "3+", exposureDepth: "deep" }, { low: 1820, high: 2090, labour: 1740, travel: 80, needsReview: true }],
-  ["leak localised", { ...SITE, jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, { low: 790, high: 910, labour: 705, travel: 0, needsReview: false }],
-  ["leak wide rough", { ...ROUGH, jobType: "leak-exposure", subtype: "Unknown Leak", leakArea: "wide" }, { low: 2500, high: 2880, labour: 2423, travel: 80, needsReview: true }],
-  ["pit small", { ...SITE, jobType: "pit-cleanout", subtype: "Service Pit", pitSize: "small", pitFill: "light" }, { low: 790, high: 910, labour: 470, travel: 0, needsReview: false }],
-  ["pit large rough", { ...ROUGH, jobType: "pit-cleanout", subtype: "Drainage Pit", pitSize: "large", pitFill: "heavy" }, { low: 1730, high: 1990, labour: 1652, travel: 80, needsReview: true }],
-  ["cattle grid (retired but live)", { ...SITE, jobType: "cattle-grid", subtype: "Single Grid", cattleCount: "1-2", cattleFill: "light" }, { low: 790, high: 910, labour: 780, travel: 0, needsReview: false }],
-  ["cattle grid rough", { ...ROUGH, jobType: "cattle-grid", subtype: "Multiple Grids", cattleCount: "3plus", cattleFill: "heavy" }, { low: 6660, high: 7660, labour: 6581, travel: 80, needsReview: true }],
-  ["bore short", { ...SITE, jobType: "tunnel-bore", subtype: "Under a Path", boreDist: "short" }, { low: 940, high: 1080, labour: 940, travel: 0, needsReview: false }],
-  ["bore long rough", { ...ROUGH, jobType: "tunnel-bore", subtype: "Not Sure", boreDist: "long" }, { low: 2940, high: 3380, labour: 2864, travel: 80, needsReview: true }],
+function calculatedShape(estimate) {
+  return {
+    low: estimate.low,
+    high: estimate.high,
+    labour: estimate.labour,
+    travel: estimate.travel,
+    needsReview: estimate.needsReview,
+    manualOnly: estimate.manualOnly,
+  };
+}
+
+// Independently derived from the retained production hours and modifiers, the
+// approved $165 onsite rate, three-hour onsite minimum, fixed $110 travel,
+// onsite-only 15% buffer and upward $10 rounding.
+const REGRESSION_SCENARIOS = [
+  ["any floor-priced job", { ...SITE, jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, { low: 610, high: 680, labour: 495, travel: 110, needsReview: false, manualOnly: false }],
+  ["5 m irrigation, 300 mm, easiest", { ...SITE, jobType: "trenching", subtype: "Irrigation Trench", metres: 5, depth: "300mm", width: "narrow" }, { low: 610, high: 680, labour: 314, travel: 110, needsReview: false, manualOnly: false }],
+  ["20 m electrical, 600 mm, standard", { ...SITE, jobType: "trenching", subtype: "Electrical Trench", metres: 20, depth: "600mm", width: "standard" }, { low: 820, high: 930, labour: 705, travel: 110, needsReview: false, manualOnly: false }],
+  ["same trench, narrow access, hard ground, services", { ...SITE, access: "side", ground: "hard", congestion: "congested", jobType: "trenching", subtype: "Electrical Trench", metres: 20, depth: "600mm", width: "standard" }, { low: 1230, high: 1390, labour: 1110, travel: 110, needsReview: false, manualOnly: false }],
+  ["three shallow potholes", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: 3, exposureDepth: "shallow" }, { low: 670, high: 760, labour: 559, travel: 110, needsReview: false, manualOnly: false }],
+  ["three deep potholes", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: 3, exposureDepth: "deep" }, { low: 770, high: 860, labour: 652, travel: 110, needsReview: false, manualOnly: false }],
+  ["four deep potholes", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: 4, exposureDepth: "deep" }, { low: 920, high: 1040, labour: 800, travel: 110, needsReview: false, manualOnly: false }],
+  ["known leak location", { ...SITE, jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, { low: 610, high: 680, labour: 495, travel: 110, needsReview: false, manualOnly: false }],
+  ["large heavily filled pit", { ...SITE, jobType: "pit-cleanout", subtype: "Drainage Pit", pitSize: "large", pitFill: "heavy" }, { low: 730, high: 830, labour: 619, travel: 110, needsReview: false, manualOnly: false }],
+  ["under obstacle less than 5 m", { ...SITE, jobType: "tunnel-bore", subtype: "Under a Path", boreDist: "short" }, { low: 770, high: 870, labour: 660, travel: 110, needsReview: false, manualOnly: false }],
+  ["60 m electrical, 600 mm, standard", { ...SITE, jobType: "trenching", subtype: "Electrical Trench", metres: 60, depth: "600mm", width: "standard" }, { low: 1730, high: 1980, labour: 1620, travel: 110, needsReview: false, manualOnly: false }],
 ];
 
-test("the redesign moved no price on any job branch", () => {
-  for (const [label, answers, expected] of PRICES) {
-    assert.deepEqual(calculateEstimatorPrice(answers), expected, label);
+test("all approved commercial regression scenarios calculate independently", () => {
+  for (const [label, answers, expected] of REGRESSION_SCENARIOS) {
+    assert.deepEqual(calculatedShape(calculateEstimatorPrice(answers)), expected, label);
   }
+});
+
+test("the only minimum is three onsite hours at $165, with fixed $110 travel", () => {
+  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+
+  assert.match(pricing, /const RATE = 165;/);
+  assert.match(pricing, /const MINIMUM_ONSITE_HOURS = 3;/);
+  assert.match(pricing, /const MINIMUM_ONSITE_LABOUR = RATE \* MINIMUM_ONSITE_HOURS;/);
+  assert.match(pricing, /const FIXED_TRAVEL_CHARGE = 110;/);
+  assert.match(pricing, /const RANGE_BUFFER = 0\.15;/);
+  assert.match(pricing, /Math\.ceil\(value \/ 10\) \* 10/);
+  for (const obsolete of ["RATE_COMP", "FLOOR_INT", "FLOOR_DISP", "MINIMUM_HOURS = 4", "MINIMUM_PRICE", "const RATE = 235", "cattleHours"]) {
+    assert.equal(pricing.includes(obsolete), false, obsolete);
+  }
+
+  // $704.88 onsite plus $110 becomes $814.88 and rounds to $820. The upper
+  // onsite amount is $810.612; adding the same $110 gives $920.612 -> $930.
+  const upward = calculateEstimatorPrice(REGRESSION_SCENARIOS[2][1]);
+  assert.equal(upward.low, 820);
+  assert.equal(upward.high, 930);
+  assert.equal(upward.travel, 110);
+});
+
+test("the 15% buffer applies to onsite work only, never the fixed travel", () => {
+  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+  const minimum = calculateEstimatorPrice(REGRESSION_SCENARIOS[0][1]);
+
+  assert.match(pricing, /const onsiteHigh = onsiteLow \* \(1 \+ RANGE_BUFFER\);/);
+  assert.match(pricing, /roundUpToTen\(onsiteLow \+ FIXED_TRAVEL_CHARGE\)/);
+  assert.match(pricing, /roundUpToTen\(onsiteHigh \+ FIXED_TRAVEL_CHARGE\)/);
+  assert.equal(pricing.includes("low * (1 + RANGE_BUFFER)"), false);
+  assert.equal(minimum.low, 610, "$495 onsite + $110 travel = $605 -> $610");
+  assert.equal(minimum.high, 680, "$495 x 1.15 + $110 = $679.25 -> $680");
+});
+
+test("exact spot quantities drive production hours without label parsing", () => {
+  const base = { ...SITE, jobType: "potholing", subtype: "Water Service", exposureDepth: "deep" };
+  const two = calculateEstimatorPrice({ ...base, exposureCount: 2 });
+  const four = calculateEstimatorPrice({ ...base, exposureCount: 4 });
+
+  assert.equal(two.labour, 503, "(1.25 + 2 x 0.75 x 1.20) x $165");
+  assert.equal(four.labour, 800, "(1.25 + 4 x 0.75 x 1.20) x $165");
+  assert.equal(four.low, 920);
+  assert.equal(/parseInt\(ans\.exposureCount/.test(estimator), false);
+  assert.ok(estimator.includes("[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"));
+});
+
+test("the exact spot selector has native, named controls and an announced value", () => {
+  const details = estimator.slice(estimator.indexOf("function S2"), estimator.indexOf("function S3"));
+
+  assert.ok(details.includes('role="group" aria-label="Approximate number of spots"'));
+  assert.ok(details.includes('aria-label="Reduce spot count"'));
+  assert.ok(details.includes('aria-label="Increase spot count"'));
+  assert.ok(details.includes('aria-live="polite"'));
+  assert.ok(details.includes("&minus;"));
+  assert.ok(details.includes('{" "}'), "count and unit have an accessible space");
+});
+
+test("unknown pothole depth is never cheaper than a known depth and is flagged", () => {
+  const base = { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: 4 };
+  const shallow = calculateEstimatorPrice({ ...base, exposureDepth: "shallow" });
+  const deep = calculateEstimatorPrice({ ...base, exposureDepth: "deep" });
+  const unsure = calculateEstimatorPrice({ ...base, exposureDepth: "unsure" });
+
+  assert.ok(unsure.low >= shallow.low);
+  assert.ok(unsure.low >= deep.low);
+  assert.equal(unsure.labour, deep.labour);
+  assert.equal(unsure.needsReview, true);
 });
 
 test("Something Else refuses to invent a price", () => {
@@ -465,8 +543,10 @@ test("Something Else refuses to invent a price", () => {
     assert.equal(estimate.low, null, "no low figure");
     assert.equal(estimate.high, null, "no high figure");
     assert.equal(estimate.labour, 0);
-    assert.equal(estimate.travel, 0, "not even a travel allowance is implied");
+    assert.equal(estimate.travel, 0);
     assert.equal(estimate.needsReview, true);
+    assert.equal(estimate.manualOnly, true);
+    assert.match(estimate.reviewReason, /outside the work the estimator can measure reliably/);
   }
 
   // Site conditions must not leak a number in through the multipliers either:
@@ -476,7 +556,62 @@ test("Something Else refuses to invent a price", () => {
   assert.deepEqual(plain, loaded);
 });
 
-test("no invented pricing constants survive for Something Else", () => {
+test("all open-ended, disposal and travel branches stop without a price", () => {
+  const manualCases = [
+    ["something else", { ...SITE, jobType: "other", subtype: "Something Unusual" }, /outside the work/],
+    ["more than 10 spots", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: "more-than-10", exposureDepth: "deep" }, /More than 10 spots/],
+    ["numeric count over 10", { ...SITE, jobType: "service-exposure", subtype: "Dig Around Known Services", exposureCount: 11, exposureDepth: "shallow" }, /More than 10 spots/],
+    ["unknown spot count", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: "unsure", exposureDepth: "deep" }, /exact approximate count/],
+    ["historic ambiguous spot count", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: "3+", exposureDepth: "deep" }, /exact approximate count/],
+    ["spoil removal", { ...SITE, spoil: "remove-all", jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, /volume, material and tipping arrangements/],
+    ["unknown spoil", { ...SITE, spoil: "unsure", jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, /volume, material and tipping arrangements/],
+    ["obstacle 5 m or more", { ...SITE, jobType: "tunnel-bore", subtype: "Under a Driveway", boreDist: "long" }, /5 metres or more/],
+    ["unknown obstacle distance", { ...SITE, jobType: "tunnel-bore", subtype: "Under a Driveway", boreDist: "unsure" }, /uncertain distance/],
+    ["trench over 100 m", { ...SITE, jobType: "trenching", subtype: "Electrical Trench", metres: 101, depth: "450mm", width: "narrow" }, /over 100 metres/],
+    ["retired cattle grid", { ...SITE, jobType: "cattle-grid", subtype: "Single Grid", cattleCount: "1-2", cattleFill: "light" }, /not available through the estimator/],
+    ["outside normal area", { ...SITE, suburb: "Cooma", jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, /review the travel/],
+  ];
+
+  for (const [label, answers, reason] of manualCases) {
+    const estimate = calculateEstimatorPrice(answers);
+    assert.equal(estimate.manualOnly, true, label);
+    assert.equal(estimate.low, null, label);
+    assert.equal(estimate.high, null, label);
+    assert.equal(estimate.labour, 0, label);
+    assert.equal(estimate.travel, 0, label);
+    assert.equal(estimate.needsReview, true, label);
+    assert.match(estimate.reviewReason, reason, label);
+  }
+});
+
+test("normal-area matching is exact and never reads the later street address", () => {
+  const job = { ...SITE, jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" };
+
+  for (const location of [
+    { suburb: "Braidwood" },
+    { suburb: "Bungendore" },
+    { suburb: "Queanbeyan" },
+    { suburb: "Jerrabomberra" },
+    { suburb: "Kambah" },
+    { suburb: "", postcode: "2600" },
+    { suburb: "", postcode: "2622" },
+  ]) {
+    assert.equal(calculateEstimatorPrice({ ...job, ...location }).manualOnly, false, JSON.stringify(location));
+  }
+
+  const displayed = calculateEstimatorPrice(job);
+  const submitted = calculateEstimatorPrice({ ...job, address: "80 Yass Street" });
+  assert.deepEqual(submitted, displayed, "street address added after display cannot alter the amount");
+  assert.equal(calculateEstimatorPrice({ ...job, suburb: "Yass" }).manualOnly, true);
+  assert.equal(calculateEstimatorPrice({ ...job, suburb: "Cooma" }).manualOnly, true);
+
+  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+  assert.equal(pricing.includes("outerArea"), false);
+  assert.equal(pricing.includes("travel ="), false);
+  assert.equal(/braidwood\|goulburn\|yass\|cooma\|bungendore/i.test(pricing), false);
+});
+
+test("no invented pricing constants survive for manual-review work", () => {
   const pricing = estimator.slice(
     estimator.indexOf("const RATE"),
     estimator.indexOf("function SummaryRows"),
@@ -484,8 +619,9 @@ test("no invented pricing constants survive for Something Else", () => {
 
   assert.equal(/otherHours|otherScale/.test(pricing), false, "the invented hours table is gone");
   // The bail-out happens before any hours, rate or multiplier is touched.
-  assert.ok(pricing.indexOf('if (jobType === "other")') < pricing.indexOf("let setupHours"));
+  assert.ok(pricing.indexOf("if (manualReviewReason)") < pricing.indexOf("let setupHours"));
   assert.equal(estimator.includes("otherScaleCards"), false, "the invented size buckets are gone");
+  assert.equal(pricing.includes("cattleHours"), false, "retired cattle-grid hours are gone");
 });
 
 test("the manual-review result is honest on every screen it appears", () => {
@@ -510,6 +646,39 @@ test("the manual-review result is honest on every screen it appears", () => {
   assert.ok(review.includes("request.estimate.manualOnly ? ("));
   assert.ok(review.includes("No automatic estimate for this one"));
   assert.ok(review.includes("no price has been given yet"));
+});
+
+test("displayed and submitted amounts are identical and explicitly + GST", () => {
+  const results = estimator.slice(estimator.indexOf("function S4"), estimator.indexOf("function S5"));
+  const requestBuilder = estimator.slice(
+    estimator.indexOf("function buildRequestDetails"),
+    estimator.indexOf("function S6"),
+  );
+  const submit = estimator.slice(estimator.indexOf("async function handleSubmit"), estimator.indexOf("const fallbackMailto"));
+
+  assert.ok(results.includes("estimate.low.toLocaleString()"));
+  assert.ok(results.includes("estimate.high.toLocaleString()"));
+  assert.ok(results.includes("+ GST"));
+  assert.ok(results.includes("$${estimate.travel} + GST fixed travel included"));
+  assert.ok(requestBuilder.includes("estimate.low.toLocaleString()"));
+  assert.ok(requestBuilder.includes("estimate.high.toLocaleString()"));
+  assert.ok(requestBuilder.includes("+ GST"));
+  assert.ok(requestBuilder.includes("$${estimate.travel} + GST fixed travel included"));
+  assert.ok(submit.includes("request.estimate.low.toLocaleString()"));
+  assert.ok(submit.includes("request.estimate.high.toLocaleString()"));
+  assert.equal((submit.match(/\+ GST/g) || []).length, 2, "both submitted price fields state GST basis");
+  assert.ok(submit.includes('request.estimate.manualOnly ? ""'), "manual requests submit no price");
+});
+
+test("reaching a manual-review result cannot fire the Ads conversion", () => {
+  const pricingAndResult = estimator.slice(
+    estimator.indexOf("function getManualReviewReason"),
+    estimator.indexOf("function S5"),
+  );
+
+  assert.equal(/gtag|trackEstimatorLead|GreenVacAnalytics/.test(pricingAndResult), false);
+  assert.equal((estimator.match(/trackEstimatorLead/g) || []).length, 1);
+  assert.ok(estimator.indexOf("trackEstimatorLead") > estimator.indexOf("if (!response.ok"));
 });
 
 test("the development submission stub cannot reach production", () => {
@@ -585,6 +754,10 @@ test("readiness rules gate each step the same way the screens do", async () => {
 
   assert.equal(state.isDetailStepReady({ jobType: "trenching", depth: "450mm" }), false);
   assert.equal(state.isDetailStepReady({ jobType: "trenching", metres: 5, depth: "450mm", width: "narrow" }), true);
+  const potholing = state.selectJobType({}, "potholing");
+  assert.equal(potholing.exposureCount, 1, "the exact-count stepper starts at one");
+  assert.equal(state.isDetailStepReady(potholing), false, "depth is still required");
+  assert.equal(state.isDetailStepReady({ ...potholing, exposureDepth: "deep" }), true);
   assert.equal(state.isDetailStepReady({ jobType: "other" }), false);
   assert.equal(state.isDetailStepReady({ jobType: "other", otherDescription: "   " }), false);
   assert.equal(state.isDetailStepReady({ jobType: "other", otherDescription: "Vacuum out a crawlspace" }), true);

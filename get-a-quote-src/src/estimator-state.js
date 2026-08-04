@@ -48,12 +48,21 @@ export function cancelPayload(screen) {
 // carry the previous job's measurements into the price. Behaviour preserved
 // verbatim from the shipped estimator.
 export function selectJobType(current, jobId) {
-  return {
+  const next = {
     metres: current.metres || 5,
     preferredTime: "flexible",
     jobType: jobId,
     subtype: null,
   };
+
+  // Exact spot quantities are required for calculated NDD and potholing
+  // estimates. Starting the stepper at one keeps the question low-friction
+  // without reviving the ambiguous historic "1-2" label.
+  if (jobId === "service-exposure" || jobId === "potholing") {
+    next.exposureCount = 1;
+  }
+
+  return next;
 }
 
 export function featuredJobs(jobTypes) {
@@ -61,8 +70,8 @@ export function featuredJobs(jobTypes) {
 }
 
 // `hidden` retires an option from the customer-facing list without deleting its
-// id, subtypes or pricing branch, so restored state and old links still price
-// exactly as before.
+// historic id and descriptive fields. Pricing decides whether restored state
+// can still calculate or needs James to review it.
 export function visibleExtraJobs(jobTypes) {
   return jobTypes.filter((job) => !job.featured && !job.hidden);
 }
@@ -84,7 +93,7 @@ export function isDetailStepReady(ans) {
       return Boolean((ans.metres || 5) > 0 && ans.depth && ans.width);
     case "service-exposure":
     case "potholing":
-      return Boolean(ans.exposureCount && ans.exposureDepth);
+      return Boolean(ans.exposureCount !== undefined && ans.exposureCount !== null && ans.exposureDepth);
     case "leak-exposure":
       return Boolean(ans.leakArea);
     case "pit-cleanout":
