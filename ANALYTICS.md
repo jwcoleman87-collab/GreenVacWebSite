@@ -28,6 +28,20 @@ The estimator retains its existing inline PostHog and Google tag bootstraps. Pro
 
 The initial estimator CTA/open is not sent to Google Ads as a lead. Existing page views and PostHog estimator engagement events remain observational.
 
+### Estimator cancellation (diagnostic only)
+
+Every estimator stage before the confirmation carries a "Cancel estimate" control that opens a confirmation dialog. Three PostHog-only events record what the visitor did, so drop-off can be read per step:
+
+| Event | Fires when |
+| --- | --- |
+| `estimator_cancel_clicked` | the visitor activates the cancel control and the dialog opens |
+| `estimator_cancel_confirmed` | the visitor confirms and leaves for the main site |
+| `estimator_cancel_dismissed` | the visitor closes the dialog (button, Escape or backdrop) and continues |
+
+Each payload is exactly `{ step, step_id }`, where `step_id` is one of `job-type`, `job-details`, `site-conditions`, `estimate`, `contact`, `review`, `sent`. Names, phone numbers, email addresses, suburbs, free text and job answers are never included — `cancelPayload` in `get-a-quote-src/src/estimator-state.js` takes a step number and nothing else.
+
+**These are not conversions and must never become conversions.** The dispatcher `captureCancel` in `App.jsx` calls `window.posthog.capture` only; it does not touch `gtag`, `window.GreenVacAnalytics` or `trackEstimatorLead`, and `js/analytics.js` has no cancellation path at all. A visitor abandoning the estimator is the opposite of a lead, so counting one in Google Ads would corrupt bidding. `tests/estimator-experience.test.cjs` asserts the isolation in both directions.
+
 ## Configuration
 
 This static project has no environment-variable pipeline and the linked Vercel project currently has no environment variables. Public tag configuration therefore lives at the top of `js/analytics.js` and can be overridden before that script loads with `window.GreenVacAnalyticsConfig`.

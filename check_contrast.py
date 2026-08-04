@@ -34,6 +34,21 @@ PALETTE = {
     "text-muted":   "#515c4c",
     "text-dim":     "#5f6a59",
     "white":        "#ffffff",
+
+    # --- Estimator SPA (mirror of :root in get-a-quote-src/src/App.jsx) -------
+    # The estimator ships its own inline stylesheet rather than css/styles.css,
+    # so its pairings are declared separately. Keep these in step with the `S`
+    # template literal in App.jsx.
+    "est-green":       "#136f39",   # eyebrows, prices, primary button fill
+    "est-green-dark":  "#0d552a",   # text on the green-soft reassurance panels
+    "est-green-soft":  "#e8f2e9",   # selected card fill, reassurance panel
+    "est-cream-light": "#f8f5ec",   # info notes, quiet "Not sure" cards
+    "est-ink":         "#232a20",   # card labels
+    "est-muted":       "#5c665b",   # card sub-copy, help text
+    "est-placeholder": "#6b766b",   # input placeholders
+    "est-danger":      "#7d2b2b",   # the "Cancel estimate" control
+    "est-disabled-bg": "#dfe6dd",   # disabled primary button
+    "est-disabled-fg": "#4a564b",   # its instruction text ("Choose a job type...")
 }
 
 # Representative solid stand-in for the service-card photo overlay
@@ -102,6 +117,21 @@ CHECKS = [
     ("Estimator intro - text-muted / surface",   "text-muted",   "surface",  False),
     ("Estimator phone - green-glow / surface",   "green-glow",   "surface",  False),
     ("Estimator note - text-dim / surface",      "text-dim",     "surface",  False),
+
+    # --- Estimator SPA: every text pairing the redesigned choice cards use ----
+    ("Est card label - ink / white card",         "est-ink",         "white",           False),
+    ("Est card sub - muted / white card",         "est-muted",       "white",           False),
+    ("Est card label - ink / selected card",      "est-ink",         "est-green-soft",  False),
+    ("Est card sub - muted / selected card",      "est-muted",       "est-green-soft",  False),
+    ("Est quiet card sub - muted / cream",        "est-muted",       "est-cream-light", False),
+    ("Est eyebrow / count - green / white",       "est-green",       "white",           False),
+    ("Est price range - green / white",           "est-green",       "white",           True),
+    ("Est reassurance - green-dark / green-soft", "est-green-dark",  "est-green-soft",  False),
+    ("Est primary button - white / green",        "white",           "est-green",       False),
+    ("Est disabled button - fg / disabled bg",    "est-disabled-fg", "est-disabled-bg", False),
+    ("Est cancel control - danger / white",       "est-danger",      "white",           False),
+    ("Est input placeholder - / white",           "est-placeholder", "white",           False),
+    ("Est info note - muted / cream",             "est-muted",       "est-cream-light", False),
 ]
 
 # Informational only (NOT gating): text on the photo-card overlay. The real
