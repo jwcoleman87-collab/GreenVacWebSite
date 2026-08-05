@@ -112,13 +112,16 @@ export function isDetailStepReady(ans) {
 }
 
 export function isSiteStepReady(ans) {
-  return Boolean(
+  const baseQuestionsReady = Boolean(
     ans.suburb?.trim() &&
     ans.access &&
     ans.ground &&
     ans.congestion &&
     ans.spoil,
   );
+  const needsSpoilVolume = ans.jobType !== "trenching" && ans.spoil === "remove-all";
+
+  return baseQuestionsReady && (!needsSpoilVolume || Boolean(ans.spoilVolume));
 }
 
 export function isContactStepReady(ans) {
@@ -130,6 +133,7 @@ export function hasUncertainSiteAnswer(ans) {
     ans.access === "unsure" ||
     ans.ground === "unsure" ||
     ans.congestion === "unsure" ||
-    ans.spoil === "unsure"
+    ans.spoil === "unsure" ||
+    ans.spoilVolume === "unsure"
   );
 }

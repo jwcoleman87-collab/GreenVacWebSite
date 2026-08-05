@@ -195,7 +195,7 @@ const depthCards = [
 
 const widthCards = [
   { id: "narrow", label: "Narrow", sub: "About 150 mm", art: "width-narrow" },
-  { id: "standard", label: "Standard", sub: "About 200 mm or wider", art: "width-standard" },
+  { id: "standard", label: "Standard — About 300 mm", sub: "Standard trench width", art: "width-standard" },
   { id: "custom", label: "Not Sure", sub: "We can confirm it with you", art: "unsure", quiet: true },
 ];
 
@@ -273,7 +273,7 @@ const spoilCards = [
   {
     id: "remove-all",
     label: "Remove It",
-    sub: "GreenVac confirms disposal before final pricing",
+    sub: "Removal priced at $85 + GST per cubic metre",
     art: "spoil-remove",
   },
   {
@@ -1852,7 +1852,15 @@ function S2({ onNext, onBack, ans, setAns, cancel }) {
 function S3({ onNext, onBack, ans, setAns, cancel }) {
   const ready = isSiteStepReady(ans);
   const uncertain = hasUncertainSiteAnswer(ans);
+  const requiresSpoilVolume = ans.jobType !== "trenching" && ans.spoil === "remove-all";
+  const questionTotal = requiresSpoilVolume ? 5 : 4;
   const set = (key) => (value) => setAns((current) => ({ ...current, [key]: value }));
+  const setSpoil = (value) =>
+    setAns((current) => ({
+      ...current,
+      spoil: value,
+      ...(value === "remove-all" ? {} : { spoilVolume: null }),
+    }));
 
   return (
     <Shell
@@ -1899,7 +1907,7 @@ function S3({ onNext, onBack, ans, setAns, cancel }) {
         </div>
       </div>
 
-      <Question id="q-access" count="Question 1 of 4" title="How is the access?">
+      <Question id="q-access" count={`Question 1 of ${questionTotal}`} title="How is the access?">
         <div className="access-grid">
           {accessCards.map((card) => (
             <Pick
@@ -1915,17 +1923,26 @@ function S3({ onNext, onBack, ans, setAns, cancel }) {
         </div>
       </Question>
 
-      <Question id="q-ground" count="Question 2 of 4" title="What is the ground like?">
+      <Question id="q-ground" count={`Question 2 of ${questionTotal}`} title="What is the ground like?">
         <ArtGrid cards={groundCards} value={ans.ground} onChange={set("ground")} />
       </Question>
 
-      <Question id="q-services" count="Question 3 of 4" title="Are underground services nearby?">
+      <Question id="q-services" count={`Question 3 of ${questionTotal}`} title="Are underground services nearby?">
         <ArtGrid cards={congestionCards} value={ans.congestion} onChange={set("congestion")} />
       </Question>
 
-      <Question id="q-spoil" count="Question 4 of 4" title="What should happen with the spoil?">
-        <ArtGrid cards={spoilCards} value={ans.spoil} onChange={set("spoil")} />
+      <Question id="q-spoil" count={`Question 4 of ${questionTotal}`} title="What should happen with the spoil?">
+        <ArtGrid cards={spoilCards} value={ans.spoil} onChange={setSpoil} />
       </Question>
+
+      {requiresSpoilVolume && (
+        <Question id="q-spoil-volume" count="Question 5 of 5" title="How much spoil should be removed?">
+          <p className="section-help" style={{ marginTop: -4 }}>
+            A rough volume is enough. GreenVac charges $85 + GST per cubic metre.
+          </p>
+          <ArtGrid cards={spoilVolumeCards} value={ans.spoilVolume} onChange={set("spoilVolume")} />
+        </Question>
+      )}
 
       <label className="field-label" htmlFor="site-notes">
         Anything else James should know? <span className="field-hint">(optional)</span>
@@ -1960,6 +1977,39 @@ const MINIMUM_ONSITE_HOURS = 3;
 const MINIMUM_ONSITE_LABOUR = RATE * MINIMUM_ONSITE_HOURS;
 const FIXED_TRAVEL_CHARGE = 110;
 const RANGE_BUFFER = 0.15;
+const SPOIL_REMOVAL_RATE = 85;
+const MINIMUM_SPOIL_VOLUME_M3 = 0.25;
+
+// Physical trench dimensions are used only to calculate spoil volume. The
+// separate widthMod and depthMod tables below remain the labour-productivity
+// inputs and must not be replaced with these metre values.
+const TRENCH_WIDTH_METRES = { narrow: 0.15, standard: 0.30, custom: 0.30 };
+const TRENCH_DEPTH_METRES = {
+  "300mm": 0.30,
+  "450mm": 0.45,
+  "600mm": 0.60,
+  "800mm": 0.80,
+};
+
+const spoilVolumeCards = [
+  { id: "small", label: "Small", sub: "0.25 m³", cubicMetres: 0.25, art: "spoil-remove" },
+  { id: "medium", label: "Medium", sub: "0.50 m³", cubicMetres: 0.50, art: "spoil-remove" },
+  { id: "large", label: "Large", sub: "0.75 m³", cubicMetres: 0.75, art: "spoil-remove" },
+  { id: "full-load", label: "Full Load", sub: "1.00 m³", cubicMetres: 1.00, art: "spoil-remove" },
+  {
+    id: "more-than-1",
+    label: "More Than 1.00 m³",
+    sub: "James will review the number of loads",
+    art: "spots-many",
+  },
+  {
+    id: "unsure",
+    label: "Not Sure",
+    sub: "Estimate using the minimum 0.25 m³",
+    art: "unsure",
+    quiet: true,
+  },
+];
 
 const depthMod = {
   "300mm": 0.90,
@@ -1989,6 +2039,111 @@ const pitHours = {
 };
 const obstacleShortHours = 2.5;
 const leakHours = { localised: 2.0, wide: 4.5, unsure: 3.0 };
+
+function emptySpoilRemoval() {
+  return {
+    active: false,
+    volumeM3: 0,
+    ratePerM3: SPOIL_REMOVAL_RATE,
+    cost: 0,
+    volumeAssumed: false,
+    assumptionType: null,
+    assumptionNote: null,
+    source: null,
+  };
+}
+
+function trimDecimal(value, places = 3) {
+  return Number(value.toFixed(places)).toString();
+}
+
+function formatSpoilCost(value) {
+  // Customer-facing standalone costs use normal half-up cent rounding. The
+  // estimate calculation continues to use the untouched unrounded value.
+  return (Math.round((Number(value) + 1e-9) * 100) / 100).toFixed(2);
+}
+
+function getSpoilVolumeOption(id) {
+  return spoilVolumeCards.find((option) => option.id === id);
+}
+
+function calculateSpoilRemoval(ans) {
+  if (ans.spoil !== "remove-all") return emptySpoilRemoval();
+
+  let volumeM3;
+  let volumeAssumed = false;
+  let assumptionType = null;
+  let assumptionNote = null;
+  let source;
+
+  if (ans.jobType === "trenching") {
+    const lengthM = Number(ans.metres || 5);
+    const widthM = TRENCH_WIDTH_METRES[ans.width];
+    const depthM = TRENCH_DEPTH_METRES[ans.depth];
+
+    if (lengthM > 0 && widthM > 0 && depthM > 0) {
+      volumeM3 = lengthM * widthM * depthM;
+      source = "trench-dimensions";
+
+      if (ans.width === "custom") {
+        volumeAssumed = true;
+        assumptionType = "standard-width";
+        assumptionNote =
+          "Spoil removal has been estimated using the standard trench width of 0.30 m because the width was Not Sure. James will confirm the actual width before work begins.";
+      }
+    } else {
+      volumeM3 = MINIMUM_SPOIL_VOLUME_M3;
+      volumeAssumed = true;
+      assumptionType = "minimum-volume";
+      source = "minimum-volume";
+    }
+  } else {
+    const volumeOption = getSpoilVolumeOption(ans.spoilVolume);
+    if (volumeOption?.cubicMetres) {
+      volumeM3 = volumeOption.cubicMetres;
+      source = "selected-volume";
+    } else {
+      volumeM3 = MINIMUM_SPOIL_VOLUME_M3;
+      volumeAssumed = true;
+      assumptionType = "minimum-volume";
+      source = "minimum-volume";
+    }
+  }
+
+  if (assumptionType === "minimum-volume") {
+    assumptionNote =
+      "Spoil removal has been estimated using the minimum volume of 0.25 m³. James will confirm the actual quantity before work begins.";
+  }
+
+  return {
+    active: true,
+    volumeM3,
+    ratePerM3: SPOIL_REMOVAL_RATE,
+    cost: volumeM3 * SPOIL_REMOVAL_RATE,
+    volumeAssumed,
+    assumptionType,
+    assumptionNote,
+    source,
+  };
+}
+
+function getSpoilRemovalSummaryRows(estimate) {
+  const removal = estimate.spoilRemoval;
+  if (!removal?.active) return [];
+
+  const rows = [
+    {
+      label: "Estimated spoil removal",
+      value: `${trimDecimal(removal.volumeM3)} m³ × $${removal.ratePerM3} = $${formatSpoilCost(removal.cost)} + GST`,
+    },
+  ];
+
+  if (removal.assumptionNote) {
+    rows.push({ label: "Spoil assumption", value: removal.assumptionNote });
+  }
+
+  return rows;
+}
 
 // Suburb is mandatory but postcode is optional, so the named ACT localities
 // keep ordinary Canberra jobs automatic even when the visitor omits a postcode.
@@ -2208,6 +2363,7 @@ function manualEstimate(reviewReason) {
     high: null,
     labour: 0,
     travel: 0,
+    spoilRemoval: emptySpoilRemoval(),
     needsReview: true,
     manualOnly: true,
     reviewReason,
@@ -2240,8 +2396,16 @@ function getManualReviewReason(ans) {
     return "Routes of 5 metres or more, or an uncertain distance, need James to review the obstacle and site before working out a useful ballpark.";
   }
 
-  if (ans.spoil === "remove-all" || ans.spoil === "unsure") {
-    return "Spoil disposal depends on the volume, material and tipping arrangements. James will review those details before including removal in a price.";
+  if (
+    ans.spoil === "remove-all" &&
+    ans.jobType !== "trenching" &&
+    ans.spoilVolume === "more-than-1"
+  ) {
+    return "More than 1.00 cubic metre of spoil may require additional loads. James will review the quantity before pricing removal.";
+  }
+
+  if (ans.spoil === "unsure") {
+    return "Whether spoil should stay onsite or be removed is not yet known. James will review that choice before pricing the job.";
   }
 
   const hasLocation = Boolean(ans.suburb?.trim() || ans.postcode?.trim());
@@ -2327,16 +2491,20 @@ function calcEstimate(ans) {
     RATE *
     combinedMultiplier;
 
+  const spoilRemoval = calculateSpoilRemoval(ans);
+  if (spoilRemoval.volumeAssumed) needsReview = true;
+
   const onsiteLow = Math.max(MINIMUM_ONSITE_LABOUR, adjustedLabour);
   const onsiteHigh = onsiteLow * (1 + RANGE_BUFFER);
-  const low = roundUpToTen(onsiteLow + FIXED_TRAVEL_CHARGE);
-  const high = roundUpToTen(onsiteHigh + FIXED_TRAVEL_CHARGE);
+  const low = roundUpToTen(onsiteLow + FIXED_TRAVEL_CHARGE + spoilRemoval.cost);
+  const high = roundUpToTen(onsiteHigh + FIXED_TRAVEL_CHARGE + spoilRemoval.cost);
 
   return {
     low,
     high,
     labour: Math.round(adjustedLabour),
     travel: FIXED_TRAVEL_CHARGE,
+    spoilRemoval,
     needsReview,
     manualOnly: false,
     reviewReason: null,
@@ -2449,6 +2617,7 @@ function S4({ onNext, onBack, ans, cancel }) {
             { label: "Location", value: buildLocation(ans) },
             { label: "Site conditions", value: conditionSummary },
             { label: "Spoil", value: findLabel(spoilCards, ans.spoil) },
+            ...getSpoilRemovalSummaryRows(estimate),
             ...(estimate.manualOnly
               ? []
               : [{ label: "Travel", value: `$${estimate.travel} + GST fixed travel included` }]),
@@ -2624,6 +2793,7 @@ function buildRequestDetails(ans) {
   const ground = findLabel(groundCards, ans.ground);
   const servicesNearby = findLabel(congestionCards, ans.congestion);
   const spoil = findLabel(spoilCards, ans.spoil);
+  const spoilVolume = getSpoilVolumeOption(ans.spoilVolume)?.label;
   const timing = getPreferredDayLabel(ans);
   const address = buildLocation(ans);
   const photoCount = ans.sitePhotos?.length || 0;
@@ -2652,6 +2822,17 @@ function buildRequestDetails(ans) {
     `Ground conditions: ${ground || "Not provided"}`,
     `Services nearby: ${servicesNearby || "Not provided"}`,
     `Spoil: ${spoil || "Not provided"}`,
+    ...(estimate.spoilRemoval.active
+      ? [
+          `Estimated spoil volume: ${trimDecimal(estimate.spoilRemoval.volumeM3)} m³`,
+          `Spoil removal rate: $${estimate.spoilRemoval.ratePerM3}/m³ + GST`,
+          `Spoil removal cost: $${formatSpoilCost(estimate.spoilRemoval.cost)} + GST`,
+          `Spoil volume assumed: ${estimate.spoilRemoval.volumeAssumed ? "Yes" : "No"}`,
+          ...(estimate.spoilRemoval.assumptionNote
+            ? [`Spoil assumption: ${estimate.spoilRemoval.assumptionNote}`]
+            : []),
+        ]
+      : ["Spoil removal cost: $0.00 + GST"]),
     estimate.manualOnly
       ? "Travel: Requires James's review"
       : `Travel: $${estimate.travel} + GST fixed travel included`,
@@ -2675,6 +2856,7 @@ function buildRequestDetails(ans) {
     ground,
     servicesNearby,
     spoil,
+    spoilVolume,
     timing,
     address,
     body,
@@ -2726,6 +2908,28 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
     formData.append(
       "estimate_high",
       request.estimate.manualOnly ? "" : `$${request.estimate.high.toLocaleString()} + GST`,
+    );
+    formData.append(
+      "spoil_volume_m3",
+      request.estimate.spoilRemoval.active
+        ? trimDecimal(request.estimate.spoilRemoval.volumeM3)
+        : "0",
+    );
+    formData.append(
+      "spoil_rate_per_m3",
+      `$${request.estimate.spoilRemoval.ratePerM3}/m³ + GST`,
+    );
+    formData.append(
+      "spoil_cost",
+      `$${formatSpoilCost(request.estimate.spoilRemoval.cost)} + GST`,
+    );
+    formData.append(
+      "spoil_volume_assumed",
+      request.estimate.spoilRemoval.volumeAssumed ? "yes" : "no",
+    );
+    formData.append(
+      "spoil_assumption_note",
+      request.estimate.spoilRemoval.assumptionNote || "",
     );
     formData.append("needs_review", request.estimate.needsReview ? "yes" : "no");
     formData.append("address", request.address || "");
@@ -2863,6 +3067,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
             ...request.detailRows,
             { label: "Site conditions", value: conditionSummary },
             { label: "Spoil", value: request.spoil },
+            ...getSpoilRemovalSummaryRows(request.estimate),
             { label: "Name", value: ans.name },
             { label: "Mobile", value: ans.mobile },
             { label: "Location", value: request.address },

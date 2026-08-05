@@ -1,6 +1,6 @@
 # GreenVac estimator pricing basis
 
-This document records the estimator pricing basis approved for production in August 2026. It is not a formal customer quote.
+This document records the approved estimator pricing basis plus the local spoil-removal revision prepared for review in August 2026. It is not a formal customer quote and does not authorise deployment of the local revision.
 
 All estimator figures are exclusive of GST. The result and review screens state `+ GST`, the enquiry body states `+ GST`, and the submitted low/high fields each state `+ GST`.
 
@@ -10,9 +10,10 @@ All estimator figures are exclusive of GST. The result and review screens state 
 - Minimum onsite attendance: `3 hours`.
 - Minimum onsite labour: `$165 x 3 = $495 + GST`.
 - Fixed travel charge: `$110 + GST` on every automatically calculated job.
+- Spoil removal: `$85 + GST per m³`, added unchanged to both figures when removal is selected.
 - Exact minimum before rounding: `$495 + $110 = $605 + GST`.
-- Lower result: the greater of calculated onsite labour and `$495`, plus `$110` travel, rounded upward to the next `$10` increment.
-- Upper result: the unrounded lower onsite labour times `1.15`, plus the same `$110` travel, rounded upward to the next `$10` increment.
+- Lower result: the greater of calculated onsite labour and `$495`, plus `$110` travel and any unrounded spoil cost, rounded upward to the next `$10` increment.
+- Upper result: the unrounded lower onsite labour times `1.15`, plus the same `$110` travel and identical unrounded spoil cost, rounded upward to the next `$10` increment.
 - Minimum displayed range: `$610-$680 + GST`.
 - Normal-area attendance assumes Braidwood, Bungendore, Queanbeyan or Canberra/ACT. Locations outside that area still require review rather than receiving an invented travel price.
 
@@ -27,6 +28,8 @@ The pricing engine remains in `get-a-quote-src/src/App.jsx`, beginning at `const
 | `MINIMUM_ONSITE_LABOUR` | `RATE * MINIMUM_ONSITE_HOURS` (`$495`) | The single executable onsite-labour floor. |
 | `FIXED_TRAVEL_CHARGE` | `$110` | Added unchanged to both completed figures after the onsite buffer. |
 | `RANGE_BUFFER` | `0.15` | Adds 15% to onsite labour only. |
+| `SPOIL_REMOVAL_RATE` | `$85/m³` | Fixed removal component; never increased by the labour buffer. |
+| `MINIMUM_SPOIL_VOLUME_M3` | `0.25 m³` | Used when a removal volume cannot be confirmed. |
 | Rounding increment | `$10` | `Math.ceil(value / 10) * 10`; never rounds down. |
 | Trench setup | `1.5 hours` | Retained setup allowance for trenching. |
 | NDD/pothole setup | `1.25 hours` | Retained setup allowance for spot work. |
@@ -45,9 +48,29 @@ The pricing engine remains in `get-a-quote-src/src/App.jsx`, beginning at `const
 | Leak production | localised `2.0`; wide `4.5`; unsure `3.0` hours | Retained leak hours; non-localised choices remain flagged for review. |
 | Short obstacle production | `2.5 hours` | Retained only for confirmed routes under 5 m. |
 
-Site multipliers remain multiplicative: `(setup hours + production hours) x $165 x access x ground x nearby-services`. The result calculation is `onsiteLow = max(calculatedOnsiteLabour, $495)`, `onsiteHigh = onsiteLow x 1.15`, then `$110` is added independently to both before upward rounding.
+Site multipliers remain multiplicative: `(setup hours + production hours) x $165 x access x ground x nearby-services`. The result calculation is `onsiteLow = max(calculatedOnsiteLabour, $495)`, `onsiteHigh = onsiteLow x 1.15`, `spoilCost = spoilVolumeM3 x $85`, then the unchanged `$110` travel and identical spoil cost are added independently to both figures before upward rounding.
 
 The retired `$260` cattle-grid rate, `$650` internal floor, `$790` display floor and flat `$80` travel allowance have no executable pricing path.
+
+## Spoil-removal volume
+
+Trench spoil is calculated from physical dimensions, separately from the retained labour-productivity modifiers:
+
+| Estimator choice | Physical value for spoil volume |
+| --- | ---: |
+| Narrow width | `0.15 m` |
+| Standard width | `0.30 m` |
+| Not Sure width | `0.30 m`, with the standard-width assumption disclosed |
+| 300 mm depth | `0.30 m` |
+| 450 mm depth | `0.45 m` |
+| 600 mm depth | `0.60 m` |
+| 800 mm depth | `0.80 m` |
+
+For a trench with known physical dimensions, `spoilVolumeM3 = length x physical width x physical depth`. If a trench depth is Not Sure, the volume cannot be geometrically derived, so the approved `0.25 m³` minimum-volume fallback is used and disclosed. No bulking factor, tonne conversion, minimum disposal fee or extra tipping fee is applied.
+
+Non-trench removal choices are Small `0.25 m³`, Medium `0.50 m³`, Large `0.75 m³`, Full Load `1.00 m³`, More Than `1.00 m³`, and Not Sure. More than `1.00 m³` routes to manual review because an additional load may be required. Not Sure calculates with `0.25 m³`, producing `$21.25 + GST`, and tells the customer that James will confirm the actual quantity.
+
+Leave Onsite adds `$0`. Remove It produces an automatic estimate whenever no unrelated manual-review rule applies.
 
 ## Scenario comparison
 
@@ -83,6 +106,14 @@ Every final rounding operation is upward to a `$10` increment.
 10. Under obstacle, less than 5 m: onsite labour `= (1.5 + 2.5) x $165 = $660`; upper onsite `= $759`; plus `$110` gives `$770` and `$869 -> $870`.
 11. 60 m electrical, 600 mm, standard, open/normal/clear: production `= 60 x 0.12 x 1.10 x 1.05 = 8.316 h`; onsite labour `= 9.816 x $165 = $1,619.64`; upper onsite `= $1,862.586`; plus `$110` gives `$1,729.64 -> $1,730` and `$1,972.586 -> $1,980`.
 
+## Spoil-removal verification arithmetic
+
+All examples use open access, normal ground, no known services and the retained trench production assumptions.
+
+1. 9 m electrical trench, 300 mm deep, Standard width, Remove It: production `= 9 x 0.12 x 0.90 x 1.05 = 1.0206 h`; calculated onsite labour `= (1.5 + 1.0206) x $165 = $415.899`, so the onsite floor is `$495` and its upper figure is `$569.25`. Spoil volume `= 9 x 0.30 x 0.30 = 0.81 m³`; unrounded spoil cost `= 0.81 x $85 = $68.85`. Completed totals are `$495 + $110 + $68.85 = $673.85 -> $680` and `$569.25 + $110 + $68.85 = $748.10 -> $750`. Displayed range: `$680-$750 + GST`.
+2. The same trench with Narrow width: production `= 9 x 0.12 x 0.90 x 1.00 = 0.972 h`; calculated onsite labour `= (1.5 + 0.972) x $165 = $407.88`, so the same onsite floor applies. Spoil volume `= 9 x 0.15 x 0.30 = 0.405 m³`; unrounded spoil cost `= 0.405 x $85 = $34.425`, displayed separately as `$34.43 + GST`. Completed totals are `$639.425 -> $640` and `$713.675 -> $720`.
+3. Known leak location with Remove It and Not Sure volume: onsite figures remain `$495/$569.25`; the approved fallback is `0.25 m³ x $85 = $21.25`. Completed totals are `$626.25 -> $630` and `$700.50 -> $710`, with the assumption disclosed.
+
 ## No-price manual-review routes
 
 These results have `low: null` and `high: null`, display no price, submit empty low/high fields, and explain why James needs to review them:
@@ -90,10 +121,11 @@ These results have `low: null` and `high: null`, display no price, submit empty 
 - Something Else.
 - More than 10 potholes/NDD spots.
 - Unknown or historically ambiguous spot counts.
-- Spoil removal or uncertainty about spoil handling; disposal depends on volume, material and tipping arrangements.
+- More than `1.00 m³` of spoil removal, because additional loads may be required.
+- Uncertainty about whether spoil should be left onsite or removed. An unknown volume after Remove It is selected does not route to manual review.
 - Digging under an obstacle for 5 metres or more, or an uncertain distance.
 - Trenching over 100 metres.
 - Retired cattle-grid state.
 - Locations outside Braidwood, Bungendore, Queanbeyan and Canberra/ACT, so travel can be reviewed without inventing a charge.
 
-Unknown access, ground, nearby services, trench dimensions and pothole depth continue through the retained conservative multiplier structure and are visibly flagged for James to review. Unknown pothole depth uses `1.20`, matching the deepest known choice, so it cannot produce a cheaper estimate.
+Unknown access, ground, nearby services, trench dimensions, pothole depth and assumed spoil volume continue through the retained conservative review structure and are visibly flagged for James to confirm. Unknown pothole depth uses `1.20`, matching the deepest known choice, so it cannot produce a cheaper estimate. An assumed spoil volume remains an automatic priced result.

@@ -42,6 +42,16 @@ function calculateEstimatorPrice(input) {
   return JSON.parse(JSON.stringify(context.result));
 }
 
+function evaluatePricing(expression) {
+  const pricingSource = estimator.slice(
+    estimator.indexOf("const RATE"),
+    estimator.indexOf("function SummaryRows"),
+  );
+  const context = { out: null };
+  vm.runInNewContext(`${pricingSource}\nout = ${expression};`, context);
+  return JSON.parse(JSON.stringify(context.out));
+}
+
 // Read the shipped data back out of App.jsx so the tests see exactly what the
 // customer gets, not a copy that can drift. A top-level `const` inside a vm
 // script is a lexical binding rather than a property of the context, so each
@@ -488,11 +498,145 @@ test("the 15% buffer applies to onsite work only, never the fixed travel", () =>
   const minimum = calculateEstimatorPrice(REGRESSION_SCENARIOS[0][1]);
 
   assert.match(pricing, /const onsiteHigh = onsiteLow \* \(1 \+ RANGE_BUFFER\);/);
-  assert.match(pricing, /roundUpToTen\(onsiteLow \+ FIXED_TRAVEL_CHARGE\)/);
-  assert.match(pricing, /roundUpToTen\(onsiteHigh \+ FIXED_TRAVEL_CHARGE\)/);
+  assert.match(pricing, /roundUpToTen\(onsiteLow \+ FIXED_TRAVEL_CHARGE \+ spoilRemoval\.cost\)/);
+  assert.match(pricing, /roundUpToTen\(onsiteHigh \+ FIXED_TRAVEL_CHARGE \+ spoilRemoval\.cost\)/);
   assert.equal(pricing.includes("low * (1 + RANGE_BUFFER)"), false);
   assert.equal(minimum.low, 610, "$495 onsite + $110 travel = $605 -> $610");
   assert.equal(minimum.high, 680, "$495 x 1.15 + $110 = $679.25 -> $680");
+});
+
+test("spoil removal has one $85 per cubic metre rate and separate physical dimensions", () => {
+  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+  const volumes = evaluatePricing("spoilVolumeCards");
+
+  assert.match(pricing, /const SPOIL_REMOVAL_RATE = 85;/);
+  assert.equal((pricing.match(/const SPOIL_REMOVAL_RATE\s*=/g) || []).length, 1);
+  assert.deepEqual(
+    volumes.map(({ id, cubicMetres }) => [id, cubicMetres ?? null]),
+    [
+      ["small", 0.25],
+      ["medium", 0.5],
+      ["large", 0.75],
+      ["full-load", 1],
+      ["more-than-1", null],
+      ["unsure", null],
+    ],
+  );
+  assert.match(pricing, /const TRENCH_WIDTH_METRES = \{ narrow: 0\.15, standard: 0\.30, custom: 0\.30 \};/);
+  assert.match(pricing, /const widthMod = \{ narrow: 1\.00, standard: 1\.05, wide: 1\.15, custom: 1\.20 \};/);
+  assert.ok(estimator.includes('label: "Standard — About 300 mm"'));
+});
+
+test("the spoil-volume selector appears only for non-trench removal", () => {
+  const siteStep = estimator.slice(estimator.indexOf("function S3"), estimator.indexOf("function S4"));
+
+  assert.ok(siteStep.includes('ans.jobType !== "trenching" && ans.spoil === "remove-all"'));
+  assert.ok(siteStep.includes('id="q-spoil-volume"'));
+  assert.ok(siteStep.includes('title="How much spoil should be removed?"'));
+  assert.ok(siteStep.includes("$85 + GST per cubic metre"));
+  assert.ok(siteStep.includes("cards={spoilVolumeCards}"));
+});
+
+test("9 m standard and narrow trenches use physical volume and unrounded spoil cost", () => {
+  const base = {
+    ...SITE,
+    spoil: "remove-all",
+    jobType: "trenching",
+    subtype: "Electrical Trench",
+    metres: 9,
+    depth: "300mm",
+  };
+  const standard = calculateEstimatorPrice({ ...base, width: "standard" });
+  const narrow = calculateEstimatorPrice({ ...base, width: "narrow" });
+
+  assert.equal(standard.labour, 416, "retained production calculation stays below the $495 onsite floor");
+  assert.ok(Math.abs(standard.spoilRemoval.volumeM3 - 0.81) < 1e-12, "9 x 0.30 x 0.30");
+  assert.ok(Math.abs(standard.spoilRemoval.cost - 68.85) < 1e-9);
+  assert.deepEqual([standard.low, standard.high], [680, 750]);
+  assert.equal(standard.spoilRemoval.volumeAssumed, false);
+
+  assert.ok(Math.abs(narrow.spoilRemoval.volumeM3 - 0.405) < 1e-12, "9 x 0.15 x 0.30");
+  assert.ok(Math.abs(narrow.spoilRemoval.cost - 34.425) < 1e-9, "cost remains unrounded in totals");
+  assert.deepEqual([narrow.low, narrow.high], [640, 720]);
+
+  const narrowRows = evaluatePricing(
+    'getSpoilRemovalSummaryRows(calcEstimate({ access: "open", ground: "normal", congestion: "clear", spoil: "remove-all", suburb: "Canberra", jobType: "trenching", subtype: "Electrical Trench", metres: 9, depth: "300mm", width: "narrow" }))',
+  );
+  assert.equal(narrowRows[0].value, "0.405 m³ × $85 = $34.43 + GST");
+});
+
+test("spoil cost is fixed at both ends and is never increased by the labour buffer", () => {
+  const leave = calculateEstimatorPrice({
+    ...SITE,
+    jobType: "trenching",
+    subtype: "Electrical Trench",
+    metres: 9,
+    depth: "300mm",
+    width: "standard",
+  });
+  const remove = calculateEstimatorPrice({
+    ...SITE,
+    spoil: "remove-all",
+    jobType: "trenching",
+    subtype: "Electrical Trench",
+    metres: 9,
+    depth: "300mm",
+    width: "standard",
+  });
+  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+
+  assert.equal(leave.spoilRemoval.cost, 0);
+  assert.deepEqual([leave.low, leave.high], [610, 680]);
+  assert.equal(remove.spoilRemoval.cost, 68.85);
+  assert.deepEqual([remove.low, remove.high], [680, 750]);
+  assert.equal(pricing.includes("spoilRemoval.cost * (1 + RANGE_BUFFER)"), false);
+  assert.ok(pricing.indexOf("onsiteHigh = onsiteLow * (1 + RANGE_BUFFER)") < pricing.indexOf("+ spoilRemoval.cost"));
+});
+
+test("non-trench removal uses selected volumes and the approved unknown fallback", () => {
+  const base = {
+    ...SITE,
+    spoil: "remove-all",
+    jobType: "leak-exposure",
+    subtype: "Water Leak",
+    leakArea: "localised",
+  };
+  const known = calculateEstimatorPrice({ ...base, spoilVolume: "full-load" });
+  const unsure = calculateEstimatorPrice({ ...base, spoilVolume: "unsure" });
+
+  assert.equal(known.manualOnly, false);
+  assert.equal(known.spoilRemoval.volumeM3, 1);
+  assert.equal(known.spoilRemoval.cost, 85);
+  assert.deepEqual([known.low, known.high], [690, 770]);
+
+  assert.equal(unsure.manualOnly, false);
+  assert.equal(unsure.needsReview, true);
+  assert.equal(unsure.spoilRemoval.volumeM3, 0.25);
+  assert.equal(unsure.spoilRemoval.cost, 21.25);
+  assert.deepEqual([unsure.low, unsure.high], [630, 710]);
+  assert.equal(unsure.spoilRemoval.volumeAssumed, true);
+  assert.equal(
+    unsure.spoilRemoval.assumptionNote,
+    "Spoil removal has been estimated using the minimum volume of 0.25 m³. James will confirm the actual quantity before work begins.",
+  );
+});
+
+test("Not Sure trench width uses 0.30 m physically without changing its labour multiplier", () => {
+  const estimate = calculateEstimatorPrice({
+    ...SITE,
+    spoil: "remove-all",
+    jobType: "trenching",
+    subtype: "Electrical Trench",
+    metres: 9,
+    depth: "300mm",
+    width: "custom",
+  });
+
+  assert.ok(Math.abs(estimate.spoilRemoval.volumeM3 - 0.81) < 1e-12);
+  assert.equal(estimate.spoilRemoval.assumptionType, "standard-width");
+  assert.match(estimate.spoilRemoval.assumptionNote, /standard trench width of 0\.30 m/);
+  assert.equal(estimate.needsReview, true);
+  assert.equal(estimate.labour, 440, "the retained custom widthMod 1.20 still drives labour");
 });
 
 test("exact spot quantities drive production hours without label parsing", () => {
@@ -556,15 +700,15 @@ test("Something Else refuses to invent a price", () => {
   assert.deepEqual(plain, loaded);
 });
 
-test("all open-ended, disposal and travel branches stop without a price", () => {
+test("all remaining open-ended, multi-load and travel branches stop without a price", () => {
   const manualCases = [
     ["something else", { ...SITE, jobType: "other", subtype: "Something Unusual" }, /outside the work/],
     ["more than 10 spots", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: "more-than-10", exposureDepth: "deep" }, /More than 10 spots/],
     ["numeric count over 10", { ...SITE, jobType: "service-exposure", subtype: "Dig Around Known Services", exposureCount: 11, exposureDepth: "shallow" }, /More than 10 spots/],
     ["unknown spot count", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: "unsure", exposureDepth: "deep" }, /exact approximate count/],
     ["historic ambiguous spot count", { ...SITE, jobType: "potholing", subtype: "Water Service", exposureCount: "3+", exposureDepth: "deep" }, /exact approximate count/],
-    ["spoil removal", { ...SITE, spoil: "remove-all", jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, /volume, material and tipping arrangements/],
-    ["unknown spoil", { ...SITE, spoil: "unsure", jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, /volume, material and tipping arrangements/],
+    ["more than one cubic metre", { ...SITE, spoil: "remove-all", spoilVolume: "more-than-1", jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, /additional loads/],
+    ["unknown spoil handling", { ...SITE, spoil: "unsure", jobType: "leak-exposure", subtype: "Water Leak", leakArea: "localised" }, /Whether spoil should stay onsite or be removed/],
     ["obstacle 5 m or more", { ...SITE, jobType: "tunnel-bore", subtype: "Under a Driveway", boreDist: "long" }, /5 metres or more/],
     ["unknown obstacle distance", { ...SITE, jobType: "tunnel-bore", subtype: "Under a Driveway", boreDist: "unsure" }, /uncertain distance/],
     ["trench over 100 m", { ...SITE, jobType: "trenching", subtype: "Electrical Trench", metres: 101, depth: "450mm", width: "narrow" }, /over 100 metres/],
@@ -660,13 +804,28 @@ test("displayed and submitted amounts are identical and explicitly + GST", () =>
   assert.ok(results.includes("estimate.high.toLocaleString()"));
   assert.ok(results.includes("+ GST"));
   assert.ok(results.includes("$${estimate.travel} + GST fixed travel included"));
+  assert.ok(results.includes("getSpoilRemovalSummaryRows(estimate)"));
   assert.ok(requestBuilder.includes("estimate.low.toLocaleString()"));
   assert.ok(requestBuilder.includes("estimate.high.toLocaleString()"));
   assert.ok(requestBuilder.includes("+ GST"));
   assert.ok(requestBuilder.includes("$${estimate.travel} + GST fixed travel included"));
+  assert.ok(requestBuilder.includes("Estimated spoil volume:"));
+  assert.ok(requestBuilder.includes("Spoil removal rate: $${estimate.spoilRemoval.ratePerM3}/m³ + GST"));
+  assert.ok(requestBuilder.includes("Spoil removal cost: $${formatSpoilCost(estimate.spoilRemoval.cost)} + GST"));
+  assert.ok(requestBuilder.includes("Spoil volume assumed:"));
+  assert.ok(requestBuilder.includes("Spoil assumption:"));
+  assert.ok(requestBuilder.includes("estimate.spoilRemoval.assumptionNote"));
   assert.ok(submit.includes("request.estimate.low.toLocaleString()"));
   assert.ok(submit.includes("request.estimate.high.toLocaleString()"));
-  assert.equal((submit.match(/\+ GST/g) || []).length, 2, "both submitted price fields state GST basis");
+  for (const field of [
+    '"spoil_volume_m3"',
+    '"spoil_rate_per_m3"',
+    '"spoil_cost"',
+    '"spoil_volume_assumed"',
+    '"spoil_assumption_note"',
+  ]) {
+    assert.ok(submit.includes(field), `${field} is included in the Flowform payload`);
+  }
   assert.ok(submit.includes('request.estimate.manualOnly ? ""'), "manual requests submit no price");
 });
 
@@ -764,10 +923,14 @@ test("readiness rules gate each step the same way the screens do", async () => {
 
   assert.equal(state.isSiteStepReady({ suburb: "  ", access: "open", ground: "normal", congestion: "clear", spoil: "leave" }), false);
   assert.equal(state.isSiteStepReady({ suburb: "Kambah", access: "open", ground: "normal", congestion: "clear", spoil: "leave" }), true);
+  assert.equal(state.isSiteStepReady({ suburb: "Kambah", access: "open", ground: "normal", congestion: "clear", spoil: "remove-all", jobType: "leak-exposure" }), false);
+  assert.equal(state.isSiteStepReady({ suburb: "Kambah", access: "open", ground: "normal", congestion: "clear", spoil: "remove-all", spoilVolume: "unsure", jobType: "leak-exposure" }), true);
+  assert.equal(state.isSiteStepReady({ suburb: "Kambah", access: "open", ground: "normal", congestion: "clear", spoil: "remove-all", jobType: "trenching" }), true);
 
   assert.equal(state.isContactStepReady({ name: "Jo", mobile: " " }), false);
   assert.equal(state.isContactStepReady({ name: "Jo", mobile: "0400000000", preferredDay: "asap" }), true);
 
   assert.equal(state.hasUncertainSiteAnswer({ access: "open", ground: "normal" }), false);
   assert.equal(state.hasUncertainSiteAnswer({ access: "open", ground: "unsure" }), true);
+  assert.equal(state.hasUncertainSiteAnswer({ access: "open", ground: "normal", spoilVolume: "unsure" }), true);
 });
