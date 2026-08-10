@@ -743,6 +743,10 @@ p  { font-size: 0.95rem; color: var(--text-muted); line-height: 1.75; }
   outline: 2px solid var(--green-glow);
   outline-offset: 4px;
 }
+.service-card:focus-visible {
+  outline: 3px solid var(--green-glow);
+  outline-offset: 4px;
+}
 /* Fallback styling when no background image is set */
 .service-card.no-image {
   background-color: var(--dark-card);
@@ -1806,3 +1810,173 @@ html.js .call-btn-float.is-visible:hover {
 /* Warning / error text — darker red so it reads on a light tint */
 .hazard-card strong { color: #b3261e; }
 .form-error { color: #c5221c; }
+
+/* ─── Expandable job photos ───────────────────────────────────────── */
+.image-expandable {
+  cursor: zoom-in;
+}
+img.image-expandable:focus-visible,
+.photo-card.image-expandable:focus-visible {
+  outline: 3px solid var(--green-glow);
+  outline-offset: 4px;
+}
+.image-expandable-bg {
+  cursor: zoom-in;
+}
+.image-expandable-bg a,
+.image-expandable-bg button {
+  cursor: pointer;
+}
+.image-expand-button {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  z-index: 4;
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,0.62);
+  border-radius: 50%;
+  background: rgba(8,11,8,0.78);
+  color: #fff;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.28);
+  transition: background var(--transition), transform var(--transition), border-color var(--transition);
+}
+.image-expand-button svg {
+  width: 21px;
+  height: 21px;
+}
+.image-expand-button:hover,
+.image-expand-button:focus-visible {
+  background: var(--green-brand);
+  border-color: #fff;
+  transform: translateY(-2px);
+}
+body.image-lightbox-open {
+  overflow: hidden;
+}
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 84px;
+  background: rgba(4,7,5,0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.image-lightbox[hidden] {
+  display: none;
+}
+.image-lightbox__figure {
+  width: min(1200px, 100%);
+  margin: 0;
+  text-align: center;
+}
+.image-lightbox__image {
+  width: 100%;
+  max-height: 84vh;
+  object-fit: contain;
+  margin: 0 auto;
+  border-radius: var(--radius-card);
+  background: #050705;
+  box-shadow: 0 24px 90px rgba(0,0,0,0.72);
+}
+.image-lightbox__caption {
+  max-width: 900px;
+  margin: 14px auto 0;
+  color: rgba(255,255,255,0.88);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.image-lightbox__close,
+.image-lightbox__nav {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,0.26);
+  background: rgba(10,14,10,0.9);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+}
+.image-lightbox__close:hover,
+.image-lightbox__close:focus-visible,
+.image-lightbox__nav:hover,
+.image-lightbox__nav:focus-visible {
+  background: var(--green-brand);
+  border-color: #fff;
+}
+.image-lightbox__close {
+  top: 22px;
+  right: 22px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.image-lightbox__nav {
+  top: 50%;
+  width: 52px;
+  height: 64px;
+  border-radius: var(--radius-card);
+  font-size: 2.2rem;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+.image-lightbox__nav:hover,
+.image-lightbox__nav:focus-visible {
+  transform: translateY(calc(-50% - 2px));
+}
+.image-lightbox__prev { left: 20px; }
+.image-lightbox__next { right: 20px; }
+
+@media (max-width: 700px) {
+  .image-expand-button {
+    right: 14px;
+    bottom: 14px;
+    width: 44px;
+    height: 44px;
+  }
+  .image-lightbox {
+    padding: 70px 16px 76px;
+  }
+  .image-lightbox__image {
+    max-height: 72vh;
+  }
+  .image-lightbox__close {
+    top: 12px;
+    right: 12px;
+  }
+  .image-lightbox__nav {
+    top: auto;
+    bottom: 14px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    transform: none;
+  }
+  .image-lightbox__nav:hover,
+  .image-lightbox__nav:focus-visible {
+    transform: translateY(-2px);
+  }
+  .image-lightbox__prev { left: 14px; }
+  .image-lightbox__next { right: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-expand-button,
+  .image-lightbox__close,
+  .image-lightbox__nav {
+    transition: none;
+  }
+}

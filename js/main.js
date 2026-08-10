@@ -295,4 +295,219 @@ document.addEventListener('DOMContentLoaded', function () {
     testImg.src = src;
   });
 
+  /* ─── Site-wide content image viewer ────────────────────────────────
+     Job photos inside <main> open at their full source size. Images that
+     already act as navigation (logos, blog links and service cards) keep
+     their original behaviour. Portfolio cards use this same viewer.
+  ─────────────────────────────────────────────────────────────────── */
+  var imageLightbox = document.createElement('div');
+  imageLightbox.className = 'image-lightbox';
+  imageLightbox.setAttribute('role', 'dialog');
+  imageLightbox.setAttribute('aria-modal', 'true');
+  imageLightbox.setAttribute('aria-label', 'Expanded image viewer');
+  imageLightbox.hidden = true;
+  imageLightbox.innerHTML =
+    '<button type="button" class="image-lightbox__close" aria-label="Close expanded image">&times;</button>' +
+    '<button type="button" class="image-lightbox__nav image-lightbox__prev" aria-label="Previous image">&#8249;</button>' +
+    '<figure class="image-lightbox__figure">' +
+      '<img class="image-lightbox__image" alt="">' +
+      '<figcaption class="image-lightbox__caption"></figcaption>' +
+    '</figure>' +
+    '<button type="button" class="image-lightbox__nav image-lightbox__next" aria-label="Next image">&#8250;</button>';
+  document.body.appendChild(imageLightbox);
+
+  var expandedImage = imageLightbox.querySelector('.image-lightbox__image');
+  var expandedCaption = imageLightbox.querySelector('.image-lightbox__caption');
+  var imageCloseBtn = imageLightbox.querySelector('.image-lightbox__close');
+  var imagePrevBtn = imageLightbox.querySelector('.image-lightbox__prev');
+  var imageNextBtn = imageLightbox.querySelector('.image-lightbox__next');
+  var imageTriggerData = new WeakMap();
+  var currentImageTrigger = null;
+
+  function imageCaption(img) {
+    var figure = img.closest('figure');
+    var figcaption = figure ? figure.querySelector('figcaption') : null;
+    if (figcaption && figcaption.textContent.trim()) return figcaption.textContent.trim();
+
+    var card = img.closest('.photo-card');
+    if (card) {
+      var tag = card.querySelector('.photo-tag');
+      var location = card.querySelector('.photo-location');
+      var parts = [tag, location].filter(Boolean).map(function (el) { return el.textContent.trim(); });
+      if (parts.length) return parts.join(' — ');
+    }
+
+    return (img.getAttribute('alt') || '').trim();
+  }
+
+  function registerImage(img) {
+    if (!img || img.closest('.image-lightbox') || img.hasAttribute('data-no-expand')) return;
+    if (img.closest('[aria-hidden="true"]')) return;
+    if (img.closest('.service-card, .nh-service-card')) return;
+    if (img.closest('a, button') && !img.closest('.photo-card')) return;
+
+    var trigger = img.closest('.photo-card') || img;
+    if (trigger.hasAttribute('data-image-expandable')) return;
+
+    var caption = imageCaption(img);
+    trigger.setAttribute('data-image-expandable', '');
+    trigger.setAttribute('role', 'button');
+    trigger.setAttribute('tabindex', '0');
+    trigger.setAttribute('aria-label', 'Expand image' + (caption ? ': ' + caption : ''));
+    trigger.classList.add('image-expandable');
+    imageTriggerData.set(trigger, {
+      image: img,
+      caption: caption
+    });
+  }
+
+  function backgroundImageUrl(el) {
+    var value = window.getComputedStyle(el).backgroundImage || '';
+    var match = value.match(/^url\(["']?(.*?)["']?\)$/);
+    return match ? match[1] : '';
+  }
+
+  function registerBackgroundImage(el) {
+    var src = backgroundImageUrl(el);
+    if (!src || el.hasAttribute('data-image-expandable')) return;
+
+    var heading = el.querySelector('h1, h2');
+    var caption = heading ? heading.innerText.replace(/\s+/g, ' ').trim() : 'GreenVac job photo';
+    var expandButton = document.createElement('button');
+    expandButton.type = 'button';
+    expandButton.className = 'image-expand-button';
+    expandButton.setAttribute('aria-label', 'Expand background image: ' + caption);
+    expandButton.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">' +
+        '<path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</svg>';
+    el.appendChild(expandButton);
+
+    el.setAttribute('data-image-expandable', '');
+    el.classList.add('image-expandable-bg');
+    imageTriggerData.set(el, {
+      src: src,
+      caption: caption
+    });
+  }
+
+  function registerPageImages(root) {
+    if (root.nodeType !== 1 && root.nodeType !== 9) return;
+    if (root.matches && root.matches('main img')) registerImage(root);
+    root.querySelectorAll('main img').forEach(registerImage);
+  }
+
+  function availableImageTriggers() {
+    return Array.prototype.slice.call(document.querySelectorAll('[data-image-expandable]')).filter(function (trigger) {
+      return imageTriggerData.has(trigger) && trigger.getClientRects().length > 0;
+    });
+  }
+
+  function updateExpandedImage(trigger) {
+    var data = imageTriggerData.get(trigger);
+    if (!data) return;
+
+    currentImageTrigger = trigger;
+    expandedImage.src = data.image ? (data.image.currentSrc || data.image.src) : data.src;
+    expandedImage.alt = data.caption || (data.image ? data.image.alt : '') || 'Expanded GreenVac job photo';
+    expandedCaption.textContent = data.caption || '';
+    expandedCaption.hidden = !data.caption;
+
+    var hasMultiple = availableImageTriggers().length > 1;
+    imagePrevBtn.hidden = !hasMultiple;
+    imageNextBtn.hidden = !hasMultiple;
+  }
+
+  function openImageLightbox(trigger) {
+    updateExpandedImage(trigger);
+    imageLightbox.hidden = false;
+    imageLightbox.classList.add('is-open');
+    document.body.classList.add('image-lightbox-open');
+    imageCloseBtn.focus();
+  }
+
+  function closeImageLightbox() {
+    imageLightbox.classList.remove('is-open');
+    imageLightbox.hidden = true;
+    expandedImage.removeAttribute('src');
+    document.body.classList.remove('image-lightbox-open');
+    if (currentImageTrigger && currentImageTrigger.isConnected) currentImageTrigger.focus();
+  }
+
+  function stepImageLightbox(direction) {
+    var triggers = availableImageTriggers();
+    if (triggers.length < 2 || !currentImageTrigger) return;
+    var index = triggers.indexOf(currentImageTrigger);
+    var nextIndex = (index + direction + triggers.length) % triggers.length;
+    updateExpandedImage(triggers[nextIndex]);
+  }
+
+  registerPageImages(document);
+  document.querySelectorAll('.info-hero').forEach(registerBackgroundImage);
+
+  if ('MutationObserver' in window) {
+    var imageObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        mutation.addedNodes.forEach(registerPageImages);
+      });
+    });
+    imageObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  document.addEventListener('click', function (event) {
+    var trigger = event.target.closest('[data-image-expandable]');
+    if (!trigger || !imageTriggerData.has(trigger)) return;
+    if (trigger.classList.contains('image-expandable-bg')) {
+      var interactive = event.target.closest('a, button');
+      if (interactive && !interactive.classList.contains('image-expand-button')) return;
+    }
+    event.preventDefault();
+    openImageLightbox(trigger);
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (!imageLightbox.hidden) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeImageLightbox();
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        stepImageLightbox(-1);
+        return;
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        stepImageLightbox(1);
+        return;
+      }
+      if (event.key === 'Tab') {
+        var controls = [imageCloseBtn, imagePrevBtn, imageNextBtn].filter(function (button) { return !button.hidden; });
+        var controlIndex = controls.indexOf(document.activeElement);
+        if (event.shiftKey && controlIndex <= 0) {
+          event.preventDefault();
+          controls[controls.length - 1].focus();
+        } else if (!event.shiftKey && controlIndex === controls.length - 1) {
+          event.preventDefault();
+          controls[0].focus();
+        }
+      }
+      return;
+    }
+
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var trigger = event.target.closest('[data-image-expandable]');
+    if (!trigger || !imageTriggerData.has(trigger)) return;
+    event.preventDefault();
+    openImageLightbox(trigger);
+  });
+
+  imageCloseBtn.addEventListener('click', closeImageLightbox);
+  imagePrevBtn.addEventListener('click', function () { stepImageLightbox(-1); });
+  imageNextBtn.addEventListener('click', function () { stepImageLightbox(1); });
+  imageLightbox.addEventListener('click', function (event) {
+    if (event.target === imageLightbox) closeImageLightbox();
+  });
+
 });
