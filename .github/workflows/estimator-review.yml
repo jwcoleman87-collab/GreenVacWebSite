@@ -1,0 +1,49 @@
+name: Estimator review
+
+on:
+  push:
+    branches: [codex/branded-estimates-2026-09-08]
+  pull_request:
+    paths:
+      - 'get-a-quote-src/**'
+      - 'get-a-quote/**'
+      - 'api/**'
+      - 'lib/estimates/**'
+      - 'tests/**'
+      - '.github/workflows/estimator-review.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: estimator-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  estimator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: get-a-quote-src/package-lock.json
+      - name: Install estimator dependencies
+        run: npm ci --prefix get-a-quote-src
+      - name: Build estimator
+        run: npm run build --prefix get-a-quote-src
+      - name: Regression tests
+        run: node --test tests/*.test.cjs
+      - name: Package reproducible review workspace
+        if: always()
+        run: tar --exclude=.git -czf "$RUNNER_TEMP/estimator-review-workspace.tar.gz" .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: estimator-review-workspace
+          path: ${{ runner.temp }}/estimator-review-workspace.tar.gz
+          retention-days: 1
