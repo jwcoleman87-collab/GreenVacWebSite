@@ -4,10 +4,7 @@
  * import this file directly and exercise the real selection, step and
  * cancellation rules instead of asserting on rendered markup.
  *
- * Pricing deliberately does NOT live here. tests/tracking-installation slices
- * App.jsx between `const RATE` and `function SummaryRows` and runs that block in
- * a bare vm context, so the pricing engine has to stay in that file, in that
- * order, with no imports.
+ * Pricing lives in lib/estimates/pricing.mjs, shared with the server.
  */
 
 // One stable id per screen. These travel with the cancellation events, so they

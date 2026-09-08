@@ -1,3 +1,8 @@
+import { jobTypes, subtypes, depthCards, widthCards, accessCards, groundCards, congestionCards, spoilCards, urgencyCards, exposureCountCards, exposureDepthCards, leakAreaCards, pitSizeCards, pitFillCards, cattleCountCards, cattleFillCards, obstacleDistanceCards, getJob, findLabel, getExposureCountLabel, buildLocation, getPreferredDayLabel, getJobDetailRows } from "../../lib/estimates/catalog.mjs";
+import { calcEstimate, spoilVolumeCards } from "../../lib/estimates/pricing.mjs";
+import { createCustomerSummary, createJobCard, jobCardText } from "../../lib/estimates/presentation.mjs";
+import { EstimateSheet } from "./EstimateSheet.jsx";
+import { preparePhotos, buildSubmission } from "./estimate-delivery.js";
 import { useEffect, useRef, useState } from "react";
 
 import { ESTIMATOR_IMAGES } from "./estimator-images.js";
@@ -16,7 +21,7 @@ import {
   visibleExtraJobs,
 } from "./estimator-state.js";
 
-const FORM_ENDPOINT = "https://flowform.to/submit";
+const FORM_ENDPOINT = "/api/estimate";
 const TOTAL_STEPS = 7;
 const HOME_URL = "/";
 
@@ -41,7 +46,7 @@ const MOCK_SUBMIT =
 
 async function mockSubmission() {
   await new Promise((resolve) => setTimeout(resolve, 500));
-  return { ok: true, json: async () => ({ success: true }) };
+  return { ok: true, json: async () => ({ success: true, reference: "GV-PREVIEW", emailCopy: "preview", photoCount: 0 }) };
 }
 
 // Customer-facing job categories. The first three are deliberately featured;
@@ -50,335 +55,8 @@ async function mockSubmission() {
 // `id` values are pricing inputs -- calcEstimate reads them directly -- so they
 // are never renamed. `hidden` retires an option from the customer-facing list
 // while leaving its id and descriptive fields available for historic state.
-const jobTypes = [
-  {
-    id: "service-exposure",
-    label: "Non-Destructive Digging",
-    shortLabel: "NDD",
-    desc: "Safely dig around services, roots and structures.",
-    photo: "ndd-services-and-roots",
-    featured: true,
-  },
-  {
-    id: "trenching",
-    label: "Trenching",
-    shortLabel: "Trenching",
-    desc: "Narrow trenches for electrical, plumbing and drainage.",
-    photo: "hero-narrow-trench",
-    featured: true,
-  },
-  {
-    id: "potholing",
-    label: "Potholing",
-    shortLabel: "Potholing",
-    desc: "Small, targeted digs to locate underground services.",
-    photo: "service-potholing-card",
-    featured: true,
-  },
-  {
-    id: "leak-exposure",
-    label: "Expose a Leak",
-    shortLabel: "Leak exposure",
-    desc: "Careful excavation around a suspected leaking pipe.",
-    photo: "service-leak",
-    featured: false,
-  },
-  {
-    id: "tunnel-bore",
-    label: "Dig Under an Obstacle",
-    shortLabel: "Under an obstacle",
-    desc: "A route beneath a path, footing, driveway or root system.",
-    photo: "hero-great-trenching",
-    featured: false,
-  },
-  {
-    id: "pit-cleanout",
-    label: "Pit or Drain Cleaning",
-    shortLabel: "Pit cleaning",
-    desc: "Remove silt, debris and sludge from pits and drains.",
-    // No honest pit cleanout photograph exists yet -- the previous one was
-    // actually a cattle grid. A branded diagram stands in until James supplies
-    // a real photo of a pit or drain being cleaned.
-    art: "pit",
-    featured: false,
-  },
-  {
-    id: "other",
-    label: "Something Else",
-    shortLabel: "Something else",
-    desc: "Tell us roughly what it is and James will price it himself.",
-    art: "unsure",
-    quiet: true,
-    featured: false,
-  },
-  {
-    // Retired from the customer-facing list as GreenVac moves to
-    // Non-Destructive Trenching. Kept for historic-state compatibility, but it
-    // can no longer reach any calculated-pricing branch.
-    id: "cattle-grid",
-    label: "Cattle Grid Cleaning",
-    shortLabel: "Cattle grid",
-    desc: "Clean accumulated mud and debris below cattle grids.",
-    art: "pit",
-    featured: false,
-    hidden: true,
-  },
-];
-
-const subtypes = {
-  "service-exposure": [
-    "Dig Around Known Services",
-    "Expose Unknown Services",
-    "Work Around Tree Roots",
-    "Expose Around a Structure",
-    "Other NDD Job",
-    "Not Sure",
-  ],
-  trenching: [
-    "Electrical Trench",
-    "Plumbing Trench",
-    "Data / Comms Trench",
-    "Irrigation Trench",
-    "Custom Trench",
-    "Not Sure",
-  ],
-  potholing: [
-    "Water Service",
-    "Electrical Service",
-    "Gas Service",
-    "Communications",
-    "Multiple Services",
-    "Not Sure",
-  ],
-  "leak-exposure": [
-    "Water Leak",
-    "Irrigation Leak",
-    "Stormwater Issue",
-    "Unknown Leak",
-  ],
-  "pit-cleanout": [
-    "Service Pit",
-    "Valve Pit",
-    "Drainage Pit",
-    "Other Cleanout",
-  ],
-  "cattle-grid": [
-    "Single Grid",
-    "Double Grid",
-    "Multiple Grids",
-    "Not Sure",
-  ],
-  "tunnel-bore": [
-    "Under a Path",
-    "Under a Driveway",
-    "Under a Wall",
-    "Under Tree Roots",
-    "Under Services",
-    "Not Sure",
-  ],
-  other: [
-    "Cleaning or Vacuum Work",
-    "Site Preparation",
-    "Several Small Jobs",
-    "Something Unusual",
-    "Not Sure",
-  ],
-};
-
-const depthCards = [
-  { id: "300mm", label: "300 mm", sub: "A shallow run", art: "depth-300" },
-  { id: "450mm", label: "450 mm", sub: "Around 450 mm deep", art: "depth-450" },
-  { id: "600mm", label: "600 mm", sub: "Around 600 mm deep", art: "depth-600" },
-  { id: "800mm", label: "800 mm", sub: "Around 800 mm deep", art: "depth-800" },
-  { id: "custom", label: "Not Sure", sub: "Your trade or plans can confirm it", art: "unsure", quiet: true },
-];
-
-const widthCards = [
-  { id: "narrow", label: "Narrow", sub: "About 150 mm", art: "width-narrow" },
-  { id: "standard", label: "Standard — About 300 mm", sub: "Standard trench width", art: "width-standard" },
-  { id: "custom", label: "Not Sure", sub: "We can confirm it with you", art: "unsure", quiet: true },
-];
-
-// Access imagery has to survive the labels being removed: a customer should be
-// able to point at the right picture without reading a word. A close-up of a
-// trench cannot do that, so each option shows the surrounding site instead.
-const accessCards = [
-  {
-    id: "open",
-    label: "Open Access",
-    sub: "Open lawn, yard or driveway to drive straight in",
-    // Was tight-access: the rig boxed in beside a block wall, which read as
-    // cramped and misled people into the wrong answer. This is an open paddock
-    // yard with the hose running free and nothing in the way.
-    photo: "port-03",
-  },
-  {
-    id: "side",
-    label: "Narrow Access",
-    sub: "A side gate or narrow path the hose has to run through",
-    // The hose threaded down a passage past a roller door, with the rig left
-    // out on the street. The constraint is the subject of the photo.
-    photo: "rig-access",
-  },
-  {
-    id: "difficult",
-    label: "Very Tight",
-    sub: "Steps, a corridor or an enclosed yard - hose only, no rig",
-    photo: "ndd-tight-access",
-  },
-  {
-    id: "unsure",
-    label: "Not Sure",
-    sub: "A photo will help James assess it",
-    art: "unsure",
-    quiet: true,
-  },
-];
-
-const groundCards = [
-  { id: "normal", label: "Normal / Soft", sub: "Typical soil, sand or loam", art: "ground-soft" },
-  { id: "hard", label: "Clay / Hard", sub: "Heavy clay, compacted or rocky", art: "ground-hard" },
-  { id: "unsure", label: "Not Sure", sub: "We can allow for uncertainty", art: "unsure", quiet: true },
-];
-
-const congestionCards = [
-  {
-    id: "clear",
-    label: "No Known Services",
-    sub: "Nothing has been identified nearby",
-    art: "services-clear",
-  },
-  {
-    id: "congested",
-    label: "Services Nearby",
-    sub: "Pipes, cables or other services are present",
-    art: "services-near",
-  },
-  {
-    id: "unsure",
-    label: "Not Sure",
-    sub: "Common when services have not been exposed",
-    art: "unsure",
-    quiet: true,
-  },
-];
-
-const spoilCards = [
-  {
-    id: "leave",
-    label: "Leave Onsite",
-    sub: "Leave the excavated material at the job",
-    art: "spoil-leave",
-  },
-  {
-    id: "remove-all",
-    label: "Remove It",
-    sub: "Removal priced at $85 + GST per cubic metre",
-    art: "spoil-remove",
-  },
-  {
-    id: "unsure",
-    label: "Not Sure",
-    sub: "James can recommend the practical option",
-    art: "unsure",
-    quiet: true,
-  },
-];
-
-const urgencyCards = [
-  { id: "asap", label: "As Soon As Possible" },
-  { id: "this-week", label: "Within a Week" },
-  { id: "next-month", label: "Within 2-4 Weeks" },
-  { id: "flexible", label: "Flexible / Planning Ahead" },
-];
-
-const exposureCountCards = [
-  {
-    id: "more-than-10",
-    label: "More Than 10",
-    sub: "James will review the larger scope",
-    art: "spots-many",
-  },
-  {
-    id: "unsure",
-    label: "Not Sure",
-    sub: "James can help work out the count",
-    art: "unsure",
-    quiet: true,
-  },
-];
-
-const exposureDepthCards = [
-  { id: "shallow", label: "Under 600 mm", sub: "A shallower exposure", art: "depth-shallow" },
-  { id: "deep", label: "600 mm or More", sub: "A deeper exposure", art: "depth-deep" },
-  { id: "unsure", label: "Not Sure", sub: "James can allow for this", art: "unsure", quiet: true },
-];
-
-const leakAreaCards = [
-  {
-    id: "localised",
-    label: "Rough Spot Known",
-    sub: "The likely leak area is fairly clear",
-    art: "leak-spot",
-  },
-  {
-    id: "wide",
-    label: "Wider Search Area",
-    sub: "The general area needs investigation",
-    art: "leak-wide",
-  },
-  { id: "unsure", label: "Not Sure", sub: "We will review it first", art: "unsure", quiet: true },
-];
-
-const pitSizeCards = [
-  { id: "small", label: "Standard Pit", sub: "Single valve box or drainage pit", art: "pit-standard" },
-  { id: "large", label: "Large Pit", sub: "Multi-bay or oversized cleanout", art: "pit-large" },
-  { id: "unsure", label: "Not Sure", sub: "A photo usually answers this", art: "unsure", quiet: true },
-];
-
-const pitFillCards = [
-  { id: "light", label: "Light Fill", sub: "Silt, leaves or light debris", art: "fill-light" },
-  { id: "heavy", label: "Heavy Sludge", sub: "Thick mud, clay or compacted buildup", art: "fill-heavy" },
-  { id: "unsure", label: "Not Sure", sub: "You may not be able to see inside", art: "unsure", quiet: true },
-];
-
-const cattleCountCards = [
-  { id: "1-2", label: "1-2 Grids", sub: "Single entry or double grid", art: "spots-few" },
-  { id: "3plus", label: "3 or More", sub: "Multiple grids or a long entry", art: "spots-many" },
-  { id: "unsure", label: "Not Sure", sub: "We can confirm from photos", art: "unsure", quiet: true },
-];
-
-const cattleFillCards = [
-  { id: "light", label: "Light Buildup", sub: "Leaves, dirt and light silt", art: "fill-light" },
-  { id: "moderate", label: "Moderate", sub: "Mud and compacted debris", art: "fill-light" },
-  { id: "heavy", label: "Heavy Sludge", sub: "Thick or solid buildup", art: "fill-heavy" },
-  { id: "unsure", label: "Not Sure", sub: "You have not looked underneath", art: "unsure", quiet: true },
-];
-
-const obstacleDistanceCards = [
-  { id: "short", label: "Under 5 m", sub: "A short path or obstacle", art: "bore-short" },
-  { id: "long", label: "5 m or More", sub: "A longer route underneath", art: "bore-long" },
-  { id: "unsure", label: "Not Sure", sub: "We can confirm onsite", art: "unsure", quiet: true },
-];
-
 const featuredJobs = pickFeaturedJobs(jobTypes);
 const extraJobs = visibleExtraJobs(jobTypes);
-
-function getJob(jobType) {
-  return jobTypes.find((job) => job.id === jobType);
-}
-
-function findLabel(cards, id) {
-  return cards.find((item) => item.id === id)?.label;
-}
-
-function getExposureCountLabel(value) {
-  const exactCount = Number(value);
-  if (Number.isInteger(exactCount) && exactCount >= 1 && exactCount <= 10) {
-    return `${exactCount} ${exactCount === 1 ? "Spot" : "Spots"}`;
-  }
-  return findLabel(exposureCountCards, value);
-}
 
 /* ---------------------------------------------------------------------------
  * Imagery
@@ -1972,545 +1650,6 @@ function S3({ onNext, onBack, ans, setAns, cancel }) {
 // onsite minimum plus one fixed travel charge for every automatically priced
 // job. The 15% range buffer applies to onsite work only; the fixed travel
 // amount is added unchanged to both ends before upward rounding.
-const RATE = 165;
-const MINIMUM_ONSITE_HOURS = 3;
-const MINIMUM_ONSITE_LABOUR = RATE * MINIMUM_ONSITE_HOURS;
-const FIXED_TRAVEL_CHARGE = 110;
-const RANGE_BUFFER = 0.15;
-const SPOIL_REMOVAL_RATE = 85;
-const MINIMUM_SPOIL_VOLUME_M3 = 0.25;
-
-// Physical trench dimensions are used only to calculate spoil volume. The
-// separate widthMod and depthMod tables below remain the labour-productivity
-// inputs and must not be replaced with these metre values.
-const TRENCH_WIDTH_METRES = { narrow: 0.15, standard: 0.30, custom: 0.30 };
-const TRENCH_DEPTH_METRES = {
-  "300mm": 0.30,
-  "450mm": 0.45,
-  "600mm": 0.60,
-  "800mm": 0.80,
-};
-
-const spoilVolumeCards = [
-  { id: "small", label: "Small", sub: "0.25 m³", cubicMetres: 0.25, art: "spoil-remove" },
-  { id: "medium", label: "Medium", sub: "0.50 m³", cubicMetres: 0.50, art: "spoil-remove" },
-  { id: "large", label: "Large", sub: "0.75 m³", cubicMetres: 0.75, art: "spoil-remove" },
-  { id: "full-load", label: "Full Load", sub: "1.00 m³", cubicMetres: 1.00, art: "spoil-remove" },
-  {
-    id: "more-than-1",
-    label: "More Than 1.00 m³",
-    sub: "James will review the number of loads",
-    art: "spots-many",
-  },
-  {
-    id: "unsure",
-    label: "Not Sure",
-    sub: "Estimate using the minimum 0.25 m³",
-    art: "unsure",
-    quiet: true,
-  },
-];
-
-const depthMod = {
-  "300mm": 0.90,
-  "450mm": 1.00,
-  "600mm": 1.10,
-  "800mm": 1.20,
-  custom: 1.35,
-};
-const widthMod = { narrow: 1.00, standard: 1.05, wide: 1.15, custom: 1.20 };
-const accessMod = { open: 1.00, side: 1.05, difficult: 1.25, unsure: 1.10 };
-const groundMod = { normal: 1.00, hard: 1.20, unsure: 1.10 };
-const congestionMod = { clear: 1.00, congested: 1.25, unsure: 1.10 };
-const exposureDepthMod = { shallow: 0.95, deep: 1.20, unsure: 1.20 };
-const trenchRates = {
-  "Electrical Trench": 0.12,
-  "Plumbing Trench": 0.11,
-  "Data / Comms Trench": 0.10,
-  "Irrigation Trench": 0.09,
-  "Custom Trench": 0.12,
-  "Not Sure": 0.12,
-};
-const pitHours = {
-  small: { light: 0.75, heavy: 1.25, unsure: 1.00 },
-  medium: { light: 1.00, heavy: 1.75, unsure: 1.25 },
-  large: { light: 1.50, heavy: 2.50, unsure: 2.00 },
-  unsure: { light: 1.00, heavy: 1.75, unsure: 1.25 },
-};
-const obstacleShortHours = 2.5;
-const leakHours = { localised: 2.0, wide: 4.5, unsure: 3.0 };
-
-function emptySpoilRemoval() {
-  return {
-    active: false,
-    volumeM3: 0,
-    ratePerM3: SPOIL_REMOVAL_RATE,
-    cost: 0,
-    volumeAssumed: false,
-    assumptionType: null,
-    assumptionNote: null,
-    source: null,
-  };
-}
-
-function trimDecimal(value, places = 3) {
-  return Number(value.toFixed(places)).toString();
-}
-
-function formatSpoilCost(value) {
-  // Customer-facing standalone costs use normal half-up cent rounding. The
-  // estimate calculation continues to use the untouched unrounded value.
-  return (Math.round((Number(value) + 1e-9) * 100) / 100).toFixed(2);
-}
-
-function getSpoilVolumeOption(id) {
-  return spoilVolumeCards.find((option) => option.id === id);
-}
-
-function calculateSpoilRemoval(ans) {
-  if (ans.spoil !== "remove-all") return emptySpoilRemoval();
-
-  let volumeM3;
-  let volumeAssumed = false;
-  let assumptionType = null;
-  let assumptionNote = null;
-  let source;
-
-  if (ans.jobType === "trenching") {
-    const lengthM = Number(ans.metres || 5);
-    const widthM = TRENCH_WIDTH_METRES[ans.width];
-    const depthM = TRENCH_DEPTH_METRES[ans.depth];
-
-    if (lengthM > 0 && widthM > 0 && depthM > 0) {
-      volumeM3 = lengthM * widthM * depthM;
-      source = "trench-dimensions";
-
-      if (ans.width === "custom") {
-        volumeAssumed = true;
-        assumptionType = "standard-width";
-        assumptionNote =
-          "Spoil removal has been estimated using the standard trench width of 0.30 m because the width was Not Sure. James will confirm the actual width before work begins.";
-      }
-    } else {
-      volumeM3 = MINIMUM_SPOIL_VOLUME_M3;
-      volumeAssumed = true;
-      assumptionType = "minimum-volume";
-      source = "minimum-volume";
-    }
-  } else {
-    const volumeOption = getSpoilVolumeOption(ans.spoilVolume);
-    if (volumeOption?.cubicMetres) {
-      volumeM3 = volumeOption.cubicMetres;
-      source = "selected-volume";
-    } else {
-      volumeM3 = MINIMUM_SPOIL_VOLUME_M3;
-      volumeAssumed = true;
-      assumptionType = "minimum-volume";
-      source = "minimum-volume";
-    }
-  }
-
-  if (assumptionType === "minimum-volume") {
-    assumptionNote =
-      "Spoil removal has been estimated using the minimum volume of 0.25 m³. James will confirm the actual quantity before work begins.";
-  }
-
-  return {
-    active: true,
-    volumeM3,
-    ratePerM3: SPOIL_REMOVAL_RATE,
-    cost: volumeM3 * SPOIL_REMOVAL_RATE,
-    volumeAssumed,
-    assumptionType,
-    assumptionNote,
-    source,
-  };
-}
-
-function getSpoilRemovalSummaryRows(estimate) {
-  const removal = estimate.spoilRemoval;
-  if (!removal?.active) return [];
-
-  const rows = [
-    {
-      label: "Estimated spoil removal",
-      value: `${trimDecimal(removal.volumeM3)} m³ × $${removal.ratePerM3} = $${formatSpoilCost(removal.cost)} + GST`,
-    },
-  ];
-
-  if (removal.assumptionNote) {
-    rows.push({ label: "Spoil assumption", value: removal.assumptionNote });
-  }
-
-  return rows;
-}
-
-// Suburb is mandatory but postcode is optional, so the named ACT localities
-// keep ordinary Canberra jobs automatic even when the visitor omits a postcode.
-// Exact matching is deliberate: an address such as "Yass Street" must not turn
-// a Canberra job into an out-of-area result.
-const CORE_AREA_NAMES = new Set([
-  "act",
-  "acton",
-  "ainslie",
-  "amaroo",
-  "aranda",
-  "banks",
-  "barton",
-  "beard",
-  "belconnen",
-  "bonner",
-  "bonython",
-  "braddon",
-  "braidwood",
-  "bruce",
-  "bungendore",
-  "calwell",
-  "campbell",
-  "canberra",
-  "canberra airport",
-  "canberra city",
-  "capital hill",
-  "casey",
-  "chapman",
-  "charnwood",
-  "chifley",
-  "chisholm",
-  "city",
-  "civic",
-  "conder",
-  "cook",
-  "coombs",
-  "crace",
-  "crestwood",
-  "curtin",
-  "deakin",
-  "denman prospect",
-  "dickson",
-  "downer",
-  "duffy",
-  "dunlop",
-  "duntroon",
-  "evatt",
-  "fadden",
-  "farrer",
-  "fisher",
-  "florey",
-  "flynn",
-  "forde",
-  "forrest",
-  "franklin",
-  "fraser",
-  "fyshwick",
-  "garran",
-  "gilmore",
-  "googong",
-  "gungahlin",
-  "gordon",
-  "gowrie",
-  "greenway",
-  "griffith",
-  "hackett",
-  "hall",
-  "harrison",
-  "hawker",
-  "higgins",
-  "holder",
-  "holt",
-  "hughes",
-  "hume",
-  "isaacs",
-  "isabella plains",
-  "jacka",
-  "jerrabomberra",
-  "kaleen",
-  "kambah",
-  "karabar",
-  "kenny",
-  "kingston",
-  "latham",
-  "lawson",
-  "lyneham",
-  "lyons",
-  "macarthur",
-  "macgregor",
-  "macnamara",
-  "mawson",
-  "mckellar",
-  "melba",
-  "mitchell",
-  "molonglo valley",
-  "monash",
-  "moncrieff",
-  "narrabundah",
-  "ngunnawal",
-  "nicholls",
-  "o'connor",
-  "o'malley",
-  "oaks estate",
-  "oxley",
-  "page",
-  "palmerston",
-  "parkes",
-  "pearce",
-  "phillip",
-  "pialligo",
-  "queanbeyan",
-  "queanbeyan east",
-  "queanbeyan west",
-  "red hill",
-  "reid",
-  "richardson",
-  "rivett",
-  "russell",
-  "scullin",
-  "spence",
-  "stirling",
-  "strathnairn",
-  "symonston",
-  "taylor",
-  "theodore",
-  "throsby",
-  "torrens",
-  "tuggeranong",
-  "turner",
-  "uriarra village",
-  "wanniassa",
-  "waramanga",
-  "watson",
-  "weetangera",
-  "weston",
-  "weston creek",
-  "whitlam",
-  "woden",
-  "woden valley",
-  "wright",
-  "yarralumla",
-]);
-
-function buildLocation(ans) {
-  const streetAndSuburb = [ans.address?.trim(), ans.suburb?.trim()].filter(Boolean).join(", ");
-  return [streetAndSuburb, ans.postcode?.trim()].filter(Boolean).join(" ").trim() || "Not provided";
-}
-
-function getPreferredDayLabel(ans) {
-  return urgencyCards.find((item) => item.id === ans.preferredDay)?.label || "Not provided";
-}
-
-function getJobDetailRows(ans) {
-  const rows = [];
-  const add = (label, value) => {
-    if (value) rows.push({ label, value });
-  };
-
-  if (ans.jobType === "trenching") {
-    add("Length", `${ans.metres || 5} m`);
-    add("Depth", depthCards.find((item) => item.id === ans.depth)?.label);
-    add("Width", widthCards.find((item) => item.id === ans.width)?.label);
-  } else if (ans.jobType === "service-exposure" || ans.jobType === "potholing") {
-    add(
-      ans.jobType === "potholing" ? "Potholes" : "Areas",
-      getExposureCountLabel(ans.exposureCount),
-    );
-    add("Depth", exposureDepthCards.find((item) => item.id === ans.exposureDepth)?.label);
-  } else if (ans.jobType === "leak-exposure") {
-    add("Search area", leakAreaCards.find((item) => item.id === ans.leakArea)?.label);
-  } else if (ans.jobType === "pit-cleanout") {
-    add("Pit size", pitSizeCards.find((item) => item.id === ans.pitSize)?.label);
-    add("Material", pitFillCards.find((item) => item.id === ans.pitFill)?.label);
-  } else if (ans.jobType === "cattle-grid") {
-    add("Grids", cattleCountCards.find((item) => item.id === ans.cattleCount)?.label);
-    add("Buildup", cattleFillCards.find((item) => item.id === ans.cattleFill)?.label);
-  } else if (ans.jobType === "tunnel-bore") {
-    add("Distance", obstacleDistanceCards.find((item) => item.id === ans.boreDist)?.label);
-  } else if (ans.jobType === "other") {
-    add("What is needed", ans.otherDescription?.trim());
-  }
-
-  return rows;
-}
-
-function normalizeArea(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/\s+(?:australian capital territory|new south wales|act|nsw)$/i, "")
-    .trim();
-}
-
-function isCoreOperatingArea(ans) {
-  const postcodeMatch = String(ans.postcode || "").match(/\b\d{4}\b/);
-  if (postcodeMatch) {
-    const postcode = Number(postcodeMatch[0]);
-    if (
-      (postcode >= 2600 && postcode <= 2618) ||
-      (postcode >= 2900 && postcode <= 2920) ||
-      postcode === 2620 ||
-      postcode === 2621 ||
-      postcode === 2622
-    ) {
-      return true;
-    }
-  }
-
-  return CORE_AREA_NAMES.has(normalizeArea(ans.suburb));
-}
-
-function manualEstimate(reviewReason) {
-  return {
-    low: null,
-    high: null,
-    labour: 0,
-    travel: 0,
-    spoilRemoval: emptySpoilRemoval(),
-    needsReview: true,
-    manualOnly: true,
-    reviewReason,
-  };
-}
-
-function getManualReviewReason(ans) {
-  if (ans.jobType === "other") {
-    return "This job sits outside the work the estimator can measure reliably. James will read the details and work out a useful ballpark himself.";
-  }
-
-  if (ans.jobType === "cattle-grid") {
-    return "Cattle grid cleaning is not available through the estimator. James needs to review the job before discussing price or availability.";
-  }
-
-  if (ans.jobType === "trenching" && Number(ans.metres || 5) > 100) {
-    return "Trenches over 100 metres need a scope review before pricing. James will check the route, staging and site conditions rather than guess at a number.";
-  }
-
-  if (ans.jobType === "service-exposure" || ans.jobType === "potholing") {
-    const count = Number(ans.exposureCount);
-    if (!Number.isInteger(count) || count < 1 || count > 10) {
-      return ans.exposureCount === "more-than-10" || count > 10
-        ? "More than 10 spots needs a scope review so James can assess the locations and likely staging before pricing it."
-        : "An exact approximate count from 1 to 10 is needed for a reliable ballpark. James can help work that out from the job details.";
-    }
-  }
-
-  if (ans.jobType === "tunnel-bore" && ans.boreDist !== "short") {
-    return "Routes of 5 metres or more, or an uncertain distance, need James to review the obstacle and site before working out a useful ballpark.";
-  }
-
-  if (
-    ans.spoil === "remove-all" &&
-    ans.jobType !== "trenching" &&
-    ans.spoilVolume === "more-than-1"
-  ) {
-    return "More than 1.00 cubic metre of spoil may require additional loads. James will review the quantity before pricing removal.";
-  }
-
-  if (ans.spoil === "unsure") {
-    return "Whether spoil should stay onsite or be removed is not yet known. James will review that choice before pricing the job.";
-  }
-
-  const hasLocation = Boolean(ans.suburb?.trim() || ans.postcode?.trim());
-  if (hasLocation && !isCoreOperatingArea(ans)) {
-    return "This location is outside GreenVac's normal Braidwood, Bungendore, Queanbeyan and Canberra/ACT operating area. James will review the travel before pricing it.";
-  }
-
-  return null;
-}
-
-function roundUpToTen(value) {
-  return Math.ceil(value / 10) * 10;
-}
-
-function calcEstimate(ans) {
-  const jobType = ans.jobType;
-
-  // Open-ended, disposal-heavy, retired and out-of-area work stops before any
-  // rate, hours or multiplier is touched. These jobs get a useful explanation,
-  // not a partial price that omits the uncertain part.
-  const manualReviewReason = getManualReviewReason(ans);
-  if (manualReviewReason) return manualEstimate(manualReviewReason);
-
-  let setupHours = 0;
-  let productionHours = 0;
-  let needsReview = false;
-
-  const accessMultiplier = accessMod[ans.access] || 1.00;
-  const groundMultiplier = groundMod[ans.ground] || 1.00;
-  const congestionMultiplier = congestionMod[ans.congestion] || 1.00;
-  const combinedMultiplier = accessMultiplier * groundMultiplier * congestionMultiplier;
-
-  if (jobType === "trenching") {
-    setupHours = 1.5;
-    const metres = ans.metres || 5;
-    const hoursPerMetre = trenchRates[ans.subtype] || 0.12;
-    productionHours =
-      metres *
-      hoursPerMetre *
-      (depthMod[ans.depth] || 1.00) *
-      (widthMod[ans.width] || 1.00);
-    if (ans.depth === "custom" || ans.width === "custom" || ans.subtype === "Not Sure") {
-      needsReview = true;
-    }
-  } else if (jobType === "service-exposure" || jobType === "potholing") {
-    setupHours = 1.25;
-    const count = Number(ans.exposureCount);
-    // The unknown choice deliberately uses the deepest known allowance. It is
-    // therefore never cheaper than either known depth and remains flagged for
-    // James to review.
-    const depthMultiplier = exposureDepthMod[ans.exposureDepth] || exposureDepthMod.unsure;
-    productionHours = count * 0.75 * depthMultiplier;
-    if (
-      ans.exposureDepth === "unsure" ||
-      ans.subtype === "Not Sure"
-    ) {
-      needsReview = true;
-    }
-  } else if (jobType === "leak-exposure") {
-    setupHours = 1.0;
-    productionHours = leakHours[ans.leakArea] || 3.0;
-    if (ans.leakArea !== "localised") needsReview = true;
-  } else if (jobType === "pit-cleanout") {
-    setupHours = 1.25;
-    productionHours = (pitHours[ans.pitSize] || pitHours.medium)[ans.pitFill] || 1.0;
-    if (ans.pitSize === "unsure" || ans.pitFill === "unsure") needsReview = true;
-  } else if (jobType === "tunnel-bore") {
-    setupHours = 1.5;
-    productionHours = obstacleShortHours;
-    if (ans.subtype === "Not Sure") needsReview = true;
-  }
-
-  if (
-    ans.access === "unsure" ||
-    ans.ground === "unsure" ||
-    ans.congestion === "unsure"
-  ) {
-    needsReview = true;
-  }
-
-  const adjustedLabour =
-    (setupHours + productionHours) *
-    RATE *
-    combinedMultiplier;
-
-  const spoilRemoval = calculateSpoilRemoval(ans);
-  if (spoilRemoval.volumeAssumed) needsReview = true;
-
-  const onsiteLow = Math.max(MINIMUM_ONSITE_LABOUR, adjustedLabour);
-  const onsiteHigh = onsiteLow * (1 + RANGE_BUFFER);
-  const low = roundUpToTen(onsiteLow + FIXED_TRAVEL_CHARGE + spoilRemoval.cost);
-  const high = roundUpToTen(onsiteHigh + FIXED_TRAVEL_CHARGE + spoilRemoval.cost);
-
-  return {
-    low,
-    high,
-    labour: Math.round(adjustedLabour),
-    travel: FIXED_TRAVEL_CHARGE,
-    spoilRemoval,
-    needsReview,
-    manualOnly: false,
-    reviewReason: null,
-  };
-}
-
 function SummaryRows({ rows }) {
   return rows.map((row) => (
     <div className="summary-row" key={row.label}>
@@ -2521,117 +1660,12 @@ function SummaryRows({ rows }) {
 }
 
 function S4({ onNext, onBack, ans, cancel }) {
-  const estimate = calcEstimate(ans);
-  const job = getJob(ans.jobType);
-  const detailRows = getJobDetailRows(ans);
-  const conditionSummary = [
-    findLabel(accessCards, ans.access),
-    findLabel(groundCards, ans.ground),
-    findLabel(congestionCards, ans.congestion),
-  ].filter(Boolean).join(" · ");
-
-  return (
-    <Shell
-      step={4}
-      onBack={onBack}
-      cancel={cancel}
-      actionReady
-      footer={
-        <>
-          <button className="primary-btn" type="button" onClick={onNext}>
-            {estimate.manualOnly ? "Ask James to Price This Job" : "Ask James to Review My Estimate"}
-          </button>
-          <div className="footer-note">
-            {estimate.manualOnly
-              ? "Contact details are only requested after you have seen where you stand."
-              : "Contact details are only requested after you have seen the price."}
-          </div>
-        </>
-      }
-    >
-      <Heading
-        mark
-        eyebrow={estimate.manualOnly ? "NO AUTOMATIC ESTIMATE" : "YOUR NO-OBLIGATION ESTIMATE"}
-        title={estimate.manualOnly ? "Thanks — James will price this one himself" : "Thanks — here’s your ballpark estimate"}
-        sub={
-          estimate.manualOnly
-            ? "This one sits outside the jobs the estimator can price honestly, so it isn’t going to guess at a number. Send the details through and James will work out a ballpark once he has looked at them. There’s no obligation either way."
-            : "You’ve given us a good picture of the job. There’s no obligation and no sales follow-up unless you choose to send the estimate to James for review."
-        }
-      />
-
-      {/* The price comes first. A tall hero photograph here used to push the
-          number below the fold on a 375px phone. */}
-      {estimate.manualOnly ? (
-        <div className="estimate-card main manual">
-          <div className="estimate-kicker">Priced by James</div>
-          <div className="manual-line">A ballpark needs a proper look</div>
-          <div className="estimate-gst">
-            {estimate.reviewReason}
-          </div>
-          <div className="privacy-proof">
-            <CheckIcon size={13} />
-            No guessed price shown
-          </div>
-        </div>
-      ) : (
-        <div className="estimate-card main">
-          <div className="estimate-kicker">Indicative estimate</div>
-          <div className="estimate-range">
-            ${estimate.low.toLocaleString()} – ${estimate.high.toLocaleString()}
-          </div>
-          <div className="estimate-gst">+ GST · Subject to GreenVac site review</div>
-          <div className="privacy-proof">
-            <CheckIcon size={13} />
-            Price shown before contact details
-          </div>
-        </div>
-      )}
-
-      {/* The uncertainty note is about a range that already exists, so it only
-          belongs on the priced path. */}
-      {estimate.needsReview && !estimate.manualOnly && (
-        <div className="reassure">
-          <CheckIcon size={18} />
-          <div>
-            <strong>James will personally review this one</strong>
-            One or more details are uncertain or site-dependent. That is normal and the range already allows for your current answers.
-          </div>
-        </div>
-      )}
-
-      <div className="estimate-card">
-        <div className="summary-heading">
-          {job?.photo && (
-            <span className="summary-thumb">
-              <Photo stem={job.photo} shape="thumb" sizes="38px" />
-            </span>
-          )}
-          {estimate.manualOnly ? "What James will look at" : "Estimate based on"}
-        </div>
-        <SummaryRows
-          rows={[
-            { label: "Service", value: job?.label },
-            { label: "Job type", value: ans.subtype },
-            ...detailRows,
-            { label: "Location", value: buildLocation(ans) },
-            { label: "Site conditions", value: conditionSummary },
-            { label: "Spoil", value: findLabel(spoilCards, ans.spoil) },
-            ...getSpoilRemovalSummaryRows(estimate),
-            ...(estimate.manualOnly
-              ? []
-              : [{ label: "Travel", value: `$${estimate.travel} + GST fixed travel included` }]),
-          ]}
-        />
-      </div>
-
-      <div className="info-note">
-        {estimate.manualOnly
-          ? "Nothing is booked and no price has been set. James will look at these details and come back to you with a ballpark and what he needs to confirm it."
-          : "This is an indicative estimate, not a formal quote or confirmed booking. Final pricing may change if the actual depth, access, ground, spoil or underground conditions differ from the answers provided."}
-      </div>
-    </Shell>
-  );
+  const summary = createCustomerSummary(ans);
+  return <Shell step={4} onBack={onBack} cancel={cancel} actionReady footer={
+    <><button className="primary-btn" type="button" onClick={onNext}>
+      {summary.manualOnly ? "Ask James to Price This Job" : "Ask James to Review My Estimate"}
+    </button><div className="footer-note">Price shown before contact details. No obligation.</div></>
+  }><EstimateSheet summary={summary} /></Shell>;
 }
 
 function S5({ onNext, onBack, ans, setAns, cancel }) {
@@ -2686,7 +1720,7 @@ function S5({ onNext, onBack, ans, setAns, cancel }) {
           <input
             className="input"
             type="email"
-            placeholder="Email address (optional)"
+            placeholder="Email address (optional — receive a copy)"
             aria-label="Email address"
             value={ans.email || ""}
             onChange={(event) => setAns((current) => ({ ...current, email: event.target.value }))}
@@ -2786,82 +1820,11 @@ function S5({ onNext, onBack, ans, setAns, cancel }) {
 }
 
 function buildRequestDetails(ans) {
-  const job = getJob(ans.jobType);
-  const detailRows = getJobDetailRows(ans);
-  const estimate = calcEstimate(ans);
-  const access = findLabel(accessCards, ans.access);
-  const ground = findLabel(groundCards, ans.ground);
-  const servicesNearby = findLabel(congestionCards, ans.congestion);
-  const spoil = findLabel(spoilCards, ans.spoil);
-  const spoilVolume = getSpoilVolumeOption(ans.spoilVolume)?.label;
-  const timing = getPreferredDayLabel(ans);
-  const address = buildLocation(ans);
-  const photoCount = ans.sitePhotos?.length || 0;
-  const body = [
-    "NEW ESTIMATE REQUEST - GREENVAC",
-    "",
-    "----------------------------",
-    estimate.manualOnly
-      ? "NO AUTOMATIC ESTIMATE - NEEDS PRICING BY JAMES"
-      : `INDICATIVE ESTIMATE: $${estimate.low.toLocaleString()} - $${estimate.high.toLocaleString()} + GST`,
-    estimate.manualOnly
-      ? `The customer was shown no price. Review reason: ${estimate.reviewReason}`
-      : estimate.needsReview ? "Flagged for manual review" : "Standard estimate",
-    "----------------------------",
-    "",
-    "CUSTOMER",
-    `Name: ${ans.name || "Not provided"}`,
-    `Mobile: ${ans.mobile || "Not provided"}`,
-    `Email: ${ans.email || "Not provided"}`,
-    "",
-    "JOB DETAILS",
-    `Service: ${job?.label || "Not provided"}`,
-    `Type: ${ans.subtype || "Not provided"}`,
-    ...detailRows.map((row) => `${row.label}: ${row.value || "Not provided"}`),
-    `Access: ${access || "Not provided"}`,
-    `Ground conditions: ${ground || "Not provided"}`,
-    `Services nearby: ${servicesNearby || "Not provided"}`,
-    `Spoil: ${spoil || "Not provided"}`,
-    ...(estimate.spoilRemoval.active
-      ? [
-          `Estimated spoil volume: ${trimDecimal(estimate.spoilRemoval.volumeM3)} m³`,
-          `Spoil removal rate: $${estimate.spoilRemoval.ratePerM3}/m³ + GST`,
-          `Spoil removal cost: $${formatSpoilCost(estimate.spoilRemoval.cost)} + GST`,
-          `Spoil volume assumed: ${estimate.spoilRemoval.volumeAssumed ? "Yes" : "No"}`,
-          ...(estimate.spoilRemoval.assumptionNote
-            ? [`Spoil assumption: ${estimate.spoilRemoval.assumptionNote}`]
-            : []),
-        ]
-      : ["Spoil removal cost: $0.00 + GST"]),
-    estimate.manualOnly
-      ? "Travel: Requires James's review"
-      : `Travel: $${estimate.travel} + GST fixed travel included`,
-    `Site notes: ${ans.siteNotes || "Not provided"}`,
-    "",
-    "SITE",
-    `Address: ${address}`,
-    `Access notes: ${ans.accessNotes || "Not provided"}`,
-    `Site photos selected: ${photoCount}`,
-    "",
-    "TIMING",
-    `Urgency: ${timing}`,
-    `Timing notes: ${ans.timingNotes || "Not provided"}`,
-  ].join("\n");
-
-  return {
-    job,
-    detailRows,
-    estimate,
-    access,
-    ground,
-    servicesNearby,
-    spoil,
-    spoilVolume,
-    timing,
-    address,
-    body,
-    subject: `Estimate Request - ${ans.subtype || "Hydrovac Job"}`,
-  };
+  const summary = createCustomerSummary(ans);
+  const card = createJobCard(ans);
+  return { summary, card, estimate: calcEstimate(ans),
+    body: jobCardText(card) + ((ans.sitePhotos?.length || 0) ? "\nPhotos selected in the estimator are not attached by this email link. Please attach them manually." : ""),
+    subject: `Estimate request | ${summary.title} | ${ans.suburb || "Job location"}` };
 }
 
 function S6({ onNext, onBack, ans, setAns, cancel }) {
@@ -2889,72 +1852,15 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
       window.posthog.capture("estimator_submit_attempt");
     }
 
-    const formData = new FormData();
-    formData.append("_to", "james@greenvac.com.au");
-    formData.append("_subject", request.subject);
-    formData.append("_replyto", ans.email || "");
-    formData.append("form_type", "Job Estimator");
-    formData.append("lead_type", "estimate_request");
-    formData.append("entrypoint", "job_estimator");
-    formData.append("name", ans.name || "");
-    formData.append("mobile", ans.mobile || "");
-    formData.append("email", ans.email || "");
-    formData.append("job_type", ans.jobType || "");
-    formData.append("subtype", ans.subtype || "");
-    formData.append(
-      "estimate_low",
-      request.estimate.manualOnly ? "" : `$${request.estimate.low.toLocaleString()} + GST`,
-    );
-    formData.append(
-      "estimate_high",
-      request.estimate.manualOnly ? "" : `$${request.estimate.high.toLocaleString()} + GST`,
-    );
-    formData.append(
-      "spoil_volume_m3",
-      request.estimate.spoilRemoval.active
-        ? trimDecimal(request.estimate.spoilRemoval.volumeM3)
-        : "0",
-    );
-    formData.append(
-      "spoil_rate_per_m3",
-      `$${request.estimate.spoilRemoval.ratePerM3}/m³ + GST`,
-    );
-    formData.append(
-      "spoil_cost",
-      `$${formatSpoilCost(request.estimate.spoilRemoval.cost)} + GST`,
-    );
-    formData.append(
-      "spoil_volume_assumed",
-      request.estimate.spoilRemoval.volumeAssumed ? "yes" : "no",
-    );
-    formData.append(
-      "spoil_assumption_note",
-      request.estimate.spoilRemoval.assumptionNote || "",
-    );
-    formData.append("needs_review", request.estimate.needsReview ? "yes" : "no");
-    formData.append("address", request.address || "");
-    formData.append("suburb", ans.suburb || "");
-    formData.append("postcode", ans.postcode || "");
-    formData.append("access_notes", ans.accessNotes || "");
-    formData.append("site_photo_count", String(ans.sitePhotos?.length || 0));
-    formData.append("preferred_day", request.timing || "");
-    formData.append("preferred_time", "Flexible");
-    formData.append("message", request.body);
-    formData.append("source_page", window.location.pathname);
-    formData.append("analytics_event_id", submissionEventIdRef.current);
-    (ans.sitePhotos || []).forEach((file, index) => {
-      formData.append(`site_photo_${index + 1}`, file);
-    });
-
     try {
-      // The acceptance check, the lead dispatch and the success transition below
-      // are identical either way -- the stub only stands in for the network.
+      const photos = await preparePhotos(ans.sitePhotos || []);
+      const submission = buildSubmission(ans, submissionEventIdRef.current, photos);
       const response = MOCK_SUBMIT
         ? await mockSubmission()
         : await fetch(FORM_ENDPOINT, {
             method: "POST",
-            body: formData,
-            headers: { Accept: "application/json" },
+            body: JSON.stringify(submission),
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
           });
 
       let payload = null;
@@ -2964,7 +1870,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
         payload = null;
       }
 
-      if (!response.ok || payload?.success === "false" || payload?.success === false) {
+      if (!response.ok || payload?.success !== true) {
         const providerMessage =
           payload?.message ||
           payload?.errors?.map((error) => error.message).join(" ");
@@ -2979,9 +1885,10 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
         window.posthog.capture("estimator_submit_success");
       }
 
+      setAns((current) => ({ ...current, estimateReceipt: payload }));
       setSubmitState("success");
       onNext();
-    } catch {
+    } catch (error) {
       if (typeof window.posthog !== "undefined") {
         window.posthog.capture("estimator_submit_error", {
           reason: "submission_failed",
@@ -2991,7 +1898,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
       submitLockRef.current = false;
       setSubmitState("error");
       setSubmitError(
-        "Could not send your request right now. Please try again, call James direct, or use the email fallback below.",
+        error.message || "Could not send your request right now. Please try again, call James direct, or use the email fallback below.",
       );
     }
   }
@@ -2999,12 +1906,6 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
   const fallbackMailto =
     `mailto:james@greenvac.com.au?subject=${encodeURIComponent(request.subject)}` +
     `&body=${encodeURIComponent(request.body)}`;
-
-  const conditionSummary = [
-    request.access,
-    request.ground,
-    request.servicesNearby,
-  ].filter(Boolean).join(" · ");
 
   return (
     <Shell
@@ -3036,71 +1937,8 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
         </>
       }
     >
-      <Heading
-        eyebrow="Final Check"
-        title="Review your request"
-        sub="Nothing is booked yet. This sends your answers and ballpark estimate to James for a personal review."
-      />
-
-      {request.estimate.manualOnly ? (
-        <div className="estimate-card main manual">
-          <div className="estimate-kicker">Priced by James</div>
-          <div className="manual-line">No automatic estimate for this one</div>
-          <div className="estimate-gst">{request.estimate.reviewReason}</div>
-        </div>
-      ) : (
-        <div className="estimate-card main">
-          <div className="estimate-kicker">Your ballpark estimate</div>
-          <div className="estimate-range">
-            ${request.estimate.low.toLocaleString()} – ${request.estimate.high.toLocaleString()}
-          </div>
-          <div className="estimate-gst">+ GST · Subject to GreenVac site review</div>
-        </div>
-      )}
-
-      <div className="estimate-card">
-        <div className="summary-heading">Request summary</div>
-        <SummaryRows
-          rows={[
-            { label: "Service", value: request.job?.label },
-            { label: "Type", value: ans.subtype },
-            ...request.detailRows,
-            { label: "Site conditions", value: conditionSummary },
-            { label: "Spoil", value: request.spoil },
-            ...getSpoilRemovalSummaryRows(request.estimate),
-            { label: "Name", value: ans.name },
-            { label: "Mobile", value: ans.mobile },
-            { label: "Location", value: request.address },
-            {
-              label: "Photos",
-              value: ans.sitePhotos?.length
-                ? `${ans.sitePhotos.length} selected`
-                : "None",
-            },
-            { label: "Timing", value: request.timing },
-          ]}
-        />
-      </div>
-
-      <div className="condition-list">
-        {(request.estimate.manualOnly
-          ? [
-              "No price has been calculated for this job, and none is implied.",
-              "James reads the description himself and works out a ballpark from it.",
-              "He confirms pricing and availability with you before any booking is made.",
-            ]
-          : [
-              "The estimate assumes the access, ground and spoil conditions described.",
-              "Unknown services, rock, buried obstacles or a different scope may change the final price.",
-              "James confirms pricing and availability before any booking is made.",
-            ]
-        ).map((condition) => (
-          <div className="condition-item" key={condition}>
-            <CheckIcon size={16} />
-            <span>{condition}</span>
-          </div>
-        ))}
-      </div>
+      <EstimateSheet summary={request.summary} />
+      <p className="info-note">Check your selections above. Sending this request does not book the job.</p>
 
       <button
         className={`checkbox${ans.acceptedTerms ? " selected" : ""}`}
@@ -3135,63 +1973,19 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
   );
 }
 
-function S7({ onRestart }) {
-  return (
-    <Shell
-      step={7}
-      footer={
-        <button className="secondary-btn" type="button" onClick={onRestart}>
-          Start a New Estimate
-        </button>
-      }
-    >
-      <div className="success-wrap">
-        <div className="success-icon">
-          <CheckIcon size={34} />
-        </div>
-        <Heading
-          eyebrow="Request Sent"
-          title="James has your job details"
-          sub="GreenVac will review the site information and contact you to confirm the price, scope and availability."
-        />
-
-        <div className="next-steps">
-          {[
-            {
-              icon: <PhoneIcon />,
-              title: "James reviews the request",
-              text: "He checks the job details, access, photos and estimate assumptions.",
-            },
-            {
-              icon: <ChatIcon />,
-              title: "GreenVac contacts you",
-              text: "You can clarify the scope and confirm the final price.",
-            },
-            {
-              icon: <TruckIcon />,
-              title: "A time is agreed",
-              text: "The job is only booked once you and GreenVac have confirmed it.",
-            },
-          ].map((item) => (
-            <div className="next-step" key={item.title}>
-              {item.icon}
-              <div className="next-step-copy">
-                <strong>{item.title}</strong>
-                <span>{item.text}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="phone-row">
-          <span>Need to speak sooner?</span>
-          <a href="tel:0408362590" data-phone-placement="estimator_success">
-            Call James directly
-          </a>
-        </div>
-      </div>
-    </Shell>
-  );
+function S7({ onRestart, ans }) {
+  const receipt = ans.estimateReceipt || {};
+  const summary = createCustomerSummary(ans, { reference: receipt.reference || "", submitted: true });
+  return <Shell step={7} footer={<button className="secondary-btn" type="button" onClick={onRestart}>Start a New Estimate</button>}>
+    <div className="gv-delivery-status" role="status">
+      <Heading eyebrow="Request received" title="Thanks — your request is with GreenVac" sub="James will review it and contact you. Nothing is booked yet." />
+      {receipt.emailCopy === "accepted" && <p className="info-note">Your email copy is on its way. You can also save the sheet below.</p>}
+      {receipt.emailCopy === "failed" && <p className="info-note">Your job request was received, but the email copy could not be sent. Please save the sheet below — there is no need to submit the job again.</p>}
+      {receipt.emailCopy === "not_requested" && <p className="info-note">No email address was supplied. Save a copy of your estimate below.</p>}
+      {receipt.emailCopy === "preview" && <p className="info-note">Preview only. No request or email was sent.</p>}
+    </div>
+    <EstimateSheet summary={summary} />
+  </Shell>;
 }
 
 export default function App() {
@@ -3260,5 +2054,5 @@ export default function App() {
   if (screen === 4) return <S4 ans={ans} onNext={next} onBack={back} cancel={cancel} />;
   if (screen === 5) return <S5 {...shared} />;
   if (screen === 6) return <S6 {...shared} />;
-  return <S7 onRestart={restart} />;
+  return <S7 onRestart={restart} ans={ans} />;
 }

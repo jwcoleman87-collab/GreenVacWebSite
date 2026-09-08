@@ -2,3 +2,9 @@
 get-a-quote-src/node_modules
 cold-email
 .claude
+
+.env*
+!.env.example
+review-output/
+
+__pycache__/
