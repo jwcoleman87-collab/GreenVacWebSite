@@ -1,0 +1,85 @@
+name: Materialise verified estimator change
+on:
+  push:
+    branches: [codex/branded-estimates-2026-09-08]
+    paths: ['.github/workflows/materialise-estimator.yml']
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.repository == 'jwcoleman87-collab/GreenVacWebSite' && github.ref == 'refs/heads/codex/branded-estimates-2026-09-08'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify and materialise tested source
+        run: |
+          python - <<'PY'
+          import base64, gzip, hashlib, json
+          from pathlib import Path
+          expected = {
+            '1': '24ff613253bb536e26f53f14f21d0fae306d248819379ccf59fdb73ff6b60384',
+            '2a': 'e9b9177433f37fd29410912b33489b8a6060aee0fe415bee47388ab0eb80b851',
+            '2b': '7312478fffa9c81c256dc757b7e4549a3f0afc76c40de0b71d3afd24b974e28d',
+            '2c': '11c498d888d5f388c176d4c4141a92194a4b18cbeac9ff1eef384e640c884f64',
+            '2d': '62656d35589a178a51579945e75f37ed2ac4a31cbd0a9e746489c395608e6b19',
+            '3a': '104772755e423a34f61930c4a5f316eeb645ce87c50f9128f637498d6763a5e9',
+            '3b': 'c65d4c7ba2a5070e10f428e44db84dd10de8b3748a508ba8fd24f5ca8813d4ec',
+            '3c': '977cd9d3c6abbd8c0fa27e2845f55ac34f0eececc57c40b4c700221078691b2a'
+          }
+          parts = []
+          for part, sha in expected.items():
+              data = Path(f'.github/estimator-payload-{part}.b64').read_text().strip()
+              actual = hashlib.sha256(data.encode()).hexdigest()
+              print(part, len(data), actual, flush=True)
+              assert actual == sha, f'Transfer checksum mismatch in {part}'
+              parts.append(data)
+          payload = gzip.decompress(base64.b64decode(''.join(parts), validate=True))
+          assert hashlib.sha256(payload).hexdigest() == 'e2e73789300d1293cd2fa6e27d179040bae791364fecb9258d2bc60f36b01bbc'
+          for change in json.loads(payload):
+              path = Path(change['path'])
+              assert not path.is_absolute() and '..' not in path.parts and path.parts[0] != '.github'
+              if change['before'] is None:
+                  assert not path.exists(), str(path)
+                  text = change['content']
+              else:
+                  before = path.read_bytes().decode()
+                  assert hashlib.sha256(before.encode()).hexdigest() == change['before'], str(path)
+                  lines = before.splitlines(keepends=True)
+                  for start, end, replacement in reversed(change['edits']):
+                      lines[start:end] = [replacement]
+                  text = ''.join(lines)
+              assert hashlib.sha256(text.encode()).hexdigest() == change['after'], str(path)
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(text.encode())
+              print('Verified', path)
+          PY
+      - name: Crop existing GreenVac logo without changing the artwork
+        run: |
+          python -m pip install Pillow==12.3.0
+          python - <<'PY'
+          from PIL import Image
+          im = Image.open('images/logo.png').convert('RGBA')
+          im = im.crop(im.getbbox())
+          im.thumbnail((660, 300), Image.Resampling.BICUBIC)
+          im.save('images/estimate-logo.png', optimize=True)
+          PY
+      - name: Build and test
+        run: |
+          npm ci --prefix get-a-quote-src
+          npm run build --prefix get-a-quote-src
+          node --test tests/*.test.cjs
+      - name: Commit only the tested implementation to the review branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .env.example .gitignore api docs lib images/estimate-logo.png get-a-quote-src/src get-a-quote tests
+          git diff --cached --check
+          git commit -m 'feat: branded customer estimates and separate internal job delivery'
+          git push origin HEAD:codex/branded-estimates-2026-09-08
