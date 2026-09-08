@@ -2,7 +2,7 @@ name: Estimator review
 
 on:
   push:
-    branches: [codex/branded-estimates-2026-09-08]
+    branches: [main, codex/branded-estimates-2026-09-08]
   pull_request:
     paths:
       - 'get-a-quote-src/**'
@@ -23,6 +23,9 @@ jobs:
   estimator:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,13 +40,12 @@ jobs:
       - name: Build estimator
         run: npm run build --prefix get-a-quote-src
       - name: Regression tests
-        run: node --test tests/*.test.cjs
-      - name: Package reproducible review workspace
-        if: always()
-        run: tar --exclude=.git -czf "$RUNNER_TEMP/estimator-review-workspace.tar.gz" .
+        run: node --test tests/*.test.cjs | tee test-results.tap
+      - name: Verify checked-in bundle is current
+        run: git diff --exit-code -- get-a-quote
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: estimator-review-workspace
-          path: ${{ runner.temp }}/estimator-review-workspace.tar.gz
-          retention-days: 1
+          name: estimator-test-results
+          path: test-results.tap
+          retention-days: 7
