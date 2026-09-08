@@ -33,20 +33,14 @@ function loadState() {
 
 // Same slice the tracking suite uses, so both files agree on where pricing lives.
 function calculateEstimatorPrice(input) {
-  const pricingSource = estimator.slice(
-    estimator.indexOf("const RATE"),
-    estimator.indexOf("function SummaryRows"),
-  );
+  const pricingSource = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
   const context = { input, result: null };
   vm.runInNewContext(`${pricingSource}\nresult = calcEstimate(input);`, context);
   return JSON.parse(JSON.stringify(context.result));
 }
 
 function evaluatePricing(expression) {
-  const pricingSource = estimator.slice(
-    estimator.indexOf("const RATE"),
-    estimator.indexOf("function SummaryRows"),
-  );
+  const pricingSource = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
   const context = { out: null };
   vm.runInNewContext(`${pricingSource}\nout = ${expression};`, context);
   return JSON.parse(JSON.stringify(context.out));
@@ -57,9 +51,10 @@ function evaluatePricing(expression) {
 // script is a lexical binding rather than a property of the context, so each
 // block has to hand its value out explicitly.
 function evaluate(startMarker, endMarker, expression) {
-  const start = estimator.indexOf(startMarker);
+  const source = read("lib/estimates/catalog.mjs").replace(/export \{[^}]+\};/g, "") + "\nconst featuredJobs = null;";
+  const start = source.indexOf(startMarker);
   assert.ok(start > 0, startMarker);
-  const block = estimator.slice(start, estimator.indexOf(endMarker, start));
+  const block = source.slice(start, source.indexOf(endMarker, start));
   const context = { out: null };
   vm.runInNewContext(`${block}\nout = ${expression};`, context);
   return context.out;
@@ -336,22 +331,17 @@ test("the outstanding photograph request is recorded", () => {
   assert.match(note, /pit or drain/i);
   assert.match(note, /bore under a driveway/i);
   // The fallback is still wired up, so the note has to stay true.
-  assert.ok(estimator.includes('art: "pit"'), "pit diagram is still the fallback");
+  assert.ok(read("lib/estimates/catalog.mjs").includes('art: "pit"'), "pit diagram is still the fallback");
 });
 
-test("the estimate page leads with the price and the agreed copy", () => {
+test("the estimate page leads with the branded total before contact details", () => {
+  const sheet = read("get-a-quote-src/src/EstimateSheet.jsx");
   const results = estimator.slice(estimator.indexOf("function S4"), estimator.indexOf("function S5"));
-
-  assert.ok(results.includes("YOUR NO-OBLIGATION ESTIMATE"));
-  assert.ok(results.includes("Thanks — here’s your ballpark estimate"));
-  assert.ok(results.includes("There’s no obligation and no sales follow-up"));
   assert.ok(results.includes("Ask James to Review My Estimate"));
-  assert.ok(results.includes("mark"), "restrained completion tick");
   assert.ok(results.includes("Price shown before contact details"));
-
-  // The price card comes before the summary, and the tall hero photograph that
-  // used to push the number below the fold on a phone is gone.
-  assert.ok(results.indexOf("estimate-range") < results.indexOf("Estimate based on"));
+  assert.ok(sheet.indexOf("gv-sheet-price") < sheet.indexOf("The job you described"));
+  assert.ok(sheet.includes("Including GST"));
+  assert.ok(sheet.includes('/images/estimate-logo.png'));
   assert.equal(results.includes("estimate-hero"), false);
 });
 
@@ -473,7 +463,7 @@ test("all approved commercial regression scenarios calculate independently", () 
 });
 
 test("the only minimum is three onsite hours at $165, with fixed $110 travel", () => {
-  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+  const pricing = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
 
   assert.match(pricing, /const RATE = 165;/);
   assert.match(pricing, /const MINIMUM_ONSITE_HOURS = 3;/);
@@ -494,7 +484,7 @@ test("the only minimum is three onsite hours at $165, with fixed $110 travel", (
 });
 
 test("the 15% buffer applies to onsite work only, never the fixed travel", () => {
-  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+  const pricing = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
   const minimum = calculateEstimatorPrice(REGRESSION_SCENARIOS[0][1]);
 
   assert.match(pricing, /const onsiteHigh = onsiteLow \* \(1 \+ RANGE_BUFFER\);/);
@@ -506,7 +496,7 @@ test("the 15% buffer applies to onsite work only, never the fixed travel", () =>
 });
 
 test("spoil removal has one $85 per cubic metre rate and separate physical dimensions", () => {
-  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+  const pricing = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
   const volumes = evaluatePricing("spoilVolumeCards");
 
   assert.match(pricing, /const SPOIL_REMOVAL_RATE = 85;/);
@@ -524,7 +514,7 @@ test("spoil removal has one $85 per cubic metre rate and separate physical dimen
   );
   assert.match(pricing, /const TRENCH_WIDTH_METRES = \{ narrow: 0\.15, standard: 0\.30, custom: 0\.30 \};/);
   assert.match(pricing, /const widthMod = \{ narrow: 1\.00, standard: 1\.05, wide: 1\.15, custom: 1\.20 \};/);
-  assert.ok(estimator.includes('label: "Standard — About 300 mm"'));
+  assert.ok(read("lib/estimates/catalog.mjs").includes('label: "Standard — About 300 mm"'));
 });
 
 test("the spoil-volume selector appears only for non-trench removal", () => {
@@ -583,7 +573,7 @@ test("spoil cost is fixed at both ends and is never increased by the labour buff
     depth: "300mm",
     width: "standard",
   });
-  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+  const pricing = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
 
   assert.equal(leave.spoilRemoval.cost, 0);
   assert.deepEqual([leave.low, leave.high], [610, 680]);
@@ -749,17 +739,14 @@ test("normal-area matching is exact and never reads the later street address", (
   assert.equal(calculateEstimatorPrice({ ...job, suburb: "Yass" }).manualOnly, true);
   assert.equal(calculateEstimatorPrice({ ...job, suburb: "Cooma" }).manualOnly, true);
 
-  const pricing = estimator.slice(estimator.indexOf("const RATE"), estimator.indexOf("function SummaryRows"));
+  const pricing = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
   assert.equal(pricing.includes("outerArea"), false);
   assert.equal(pricing.includes("travel ="), false);
   assert.equal(/braidwood\|goulburn\|yass\|cooma\|bungendore/i.test(pricing), false);
 });
 
 test("no invented pricing constants survive for manual-review work", () => {
-  const pricing = estimator.slice(
-    estimator.indexOf("const RATE"),
-    estimator.indexOf("function SummaryRows"),
-  );
+  const pricing = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
 
   assert.equal(/otherHours|otherScale/.test(pricing), false, "the invented hours table is gone");
   // The bail-out happens before any hours, rate or multiplier is touched.
@@ -768,65 +755,33 @@ test("no invented pricing constants survive for manual-review work", () => {
   assert.equal(pricing.includes("cattleHours"), false, "retired cattle-grid hours are gone");
 });
 
-test("the manual-review result is honest on every screen it appears", () => {
-  const results = estimator.slice(estimator.indexOf("function S4"), estimator.indexOf("function S5"));
-  assert.ok(results.includes("NO AUTOMATIC ESTIMATE"));
-  assert.ok(results.includes("James will price this one himself"));
-  assert.ok(results.includes("isn’t going to guess at a number"));
-  assert.ok(results.includes("Ask James to Price This Job"));
-  assert.ok(results.includes("No guessed price shown"));
-
-  // The number is rendered only on the priced branch.
-  const priceRender = results.indexOf("estimate.low.toLocaleString()");
-  assert.ok(priceRender > results.indexOf("estimate.manualOnly ? ("), "price sits inside the non-manual branch");
-
-  // The enquiry that reaches James says plainly that nothing was priced.
-  const email = estimator.slice(estimator.indexOf("function buildRequestDetails"), estimator.indexOf("function S6"));
-  assert.ok(email.includes("NO AUTOMATIC ESTIMATE - NEEDS PRICING BY JAMES"));
-  assert.ok(email.includes("The customer was shown no price"));
-
-  // And the review screen does not print a range it does not have.
-  const review = estimator.slice(estimator.indexOf("function S6"), estimator.indexOf("function S7"));
-  assert.ok(review.includes("request.estimate.manualOnly ? ("));
-  assert.ok(review.includes("No automatic estimate for this one"));
-  assert.ok(review.includes("no price has been given yet"));
+test("the manual-review result remains honest on every customer output", async () => {
+  const { createCustomerSummary, renderCustomerEmail } = await import("../lib/estimates/presentation.mjs");
+  const summary = createCustomerSummary({ ...SITE, jobType: "other", subtype: "Something Unusual", otherDescription: "Please inspect the site" });
+  assert.equal(summary.manualOnly, true);
+  assert.equal(summary.price, null);
+  assert.equal(summary.exGst, null);
+  assert.deepEqual(summary.inclusions, []);
+  const html = renderCustomerEmail(summary);
+  assert.ok(html.includes("No automatic estimate has been given"));
+  assert.equal(html.includes("ESTIMATED TOTAL"), false);
+  const sheet = read("get-a-quote-src/src/EstimateSheet.jsx");
+  assert.ok(sheet.includes('m.manualOnly ?'));
+  assert.ok(sheet.includes("No automatic estimate has been given"));
+  assert.ok(estimator.includes("Ask James to Price This Job"));
 });
 
-test("displayed and submitted amounts are identical and explicitly + GST", () => {
-  const results = estimator.slice(estimator.indexOf("function S4"), estimator.indexOf("function S5"));
-  const requestBuilder = estimator.slice(
-    estimator.indexOf("function buildRequestDetails"),
-    estimator.indexOf("function S6"),
-  );
-  const submit = estimator.slice(estimator.indexOf("async function handleSubmit"), estimator.indexOf("const fallbackMailto"));
-
-  assert.ok(results.includes("estimate.low.toLocaleString()"));
-  assert.ok(results.includes("estimate.high.toLocaleString()"));
-  assert.ok(results.includes("+ GST"));
-  assert.ok(results.includes("$${estimate.travel} + GST fixed travel included"));
-  assert.ok(results.includes("getSpoilRemovalSummaryRows(estimate)"));
-  assert.ok(requestBuilder.includes("estimate.low.toLocaleString()"));
-  assert.ok(requestBuilder.includes("estimate.high.toLocaleString()"));
-  assert.ok(requestBuilder.includes("+ GST"));
-  assert.ok(requestBuilder.includes("$${estimate.travel} + GST fixed travel included"));
-  assert.ok(requestBuilder.includes("Estimated spoil volume:"));
-  assert.ok(requestBuilder.includes("Spoil removal rate: $${estimate.spoilRemoval.ratePerM3}/m³ + GST"));
-  assert.ok(requestBuilder.includes("Spoil removal cost: $${formatSpoilCost(estimate.spoilRemoval.cost)} + GST"));
-  assert.ok(requestBuilder.includes("Spoil volume assumed:"));
-  assert.ok(requestBuilder.includes("Spoil assumption:"));
-  assert.ok(requestBuilder.includes("estimate.spoilRemoval.assumptionNote"));
-  assert.ok(submit.includes("request.estimate.low.toLocaleString()"));
-  assert.ok(submit.includes("request.estimate.high.toLocaleString()"));
-  for (const field of [
-    '"spoil_volume_m3"',
-    '"spoil_rate_per_m3"',
-    '"spoil_cost"',
-    '"spoil_volume_assumed"',
-    '"spoil_assumption_note"',
-  ]) {
-    assert.ok(submit.includes(field), `${field} is included in the Flowform payload`);
-  }
-  assert.ok(submit.includes('request.estimate.manualOnly ? ""'), "manual requests submit no price");
+test("customer prices include GST without changing the calculator and omit internal workings", async () => {
+  const { createCustomerSummary, renderCustomerEmail } = await import("../lib/estimates/presentation.mjs");
+  const summary = createCustomerSummary({ ...SITE, jobType: "trenching", subtype: "Electrical Trench", metres: 9, depth: "300mm", width: "standard", spoil: "remove-all" });
+  assert.equal(summary.price, "$748 – $825");
+  assert.equal(summary.exGst, "$680 – $750 excluding GST");
+  const rendered = JSON.stringify(summary) + renderCustomerEmail(summary);
+  for (const forbidden of ["ratePerM3", "volumeM3", "assumptionNote", "0.81", "$85", "m³", "multiplier"]) assert.equal(rendered.includes(forbidden), false, forbidden);
+  assert.ok(summary.inclusions.some(x => x.includes("travel")));
+  assert.ok(summary.inclusions.some(x => x.includes("Removal")));
+  assert.equal(estimator.includes('formData.append("spoil_rate_per_m3"'), false);
+  assert.ok(estimator.includes('body: JSON.stringify(submission)'));
 });
 
 test("reaching a manual-review result cannot fire the Ads conversion", () => {
@@ -877,7 +832,7 @@ test("the development submission stub cannot reach production", () => {
   ]) {
     assert.equal(shipped.includes(trace), false, `${trace} leaked into the production bundle`);
   }
-  assert.ok(shipped.includes("flowform.to/submit"), "the real endpoint still ships");
+  assert.ok(shipped.includes("/api/estimate"), "the real endpoint still ships");
 });
 
 /* --- shared logic is really shared --------------------------------------- */

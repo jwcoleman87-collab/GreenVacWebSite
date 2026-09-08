@@ -32,10 +32,7 @@ function estimatorTrackingHashes(relativePath) {
 
 function calculateEstimatorPrice(input) {
   const estimator = read("get-a-quote-src/src/App.jsx");
-  const pricingSource = estimator.slice(
-    estimator.indexOf("const RATE"),
-    estimator.indexOf("function SummaryRows"),
-  );
+  const pricingSource = read("lib/estimates/pricing.mjs").replace(/export \{[^}]+\};/g, "");
   const context = { input, result: null };
   vm.runInNewContext(`${pricingSource}\nresult = calcEstimate(input);`, context);
   return JSON.parse(JSON.stringify(context.result));
@@ -210,7 +207,7 @@ test("estimator shows the price before requesting contact details", () => {
 });
 
 test("estimator keeps the first choice focused on three featured services plus more", () => {
-  const estimator = read("get-a-quote-src/src/App.jsx");
+  const estimator = read("get-a-quote-src/src/App.jsx") + read("lib/estimates/catalog.mjs");
 
   assert.ok(estimator.includes('label: "Non-Destructive Digging"'));
   assert.ok(estimator.includes('label: "Trenching"'));
