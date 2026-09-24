@@ -6,15 +6,13 @@ usable as they stand, but a real photo would do the job better. Not deployed:
 
 ---
 
-## 1. A pit or drain being cleaned — **fallback in use**
+## 1. A pit or drain being cleaned — **generated illustration in use**
 
 **Where it appears:** "Pit or Drain Cleaning", inside More Job Types on step 1
 (estimator step 1, expanded list). Also backs the pit size and pit fill
 diagrams on step 2.
 
-**Currently showing:** a branded SVG cross-section — a chamber with the lid
-lifted off and a suction hose going in. It reads acceptably on desktop but it is
-the weakest visual in the estimator at the 84px mobile thumbnail size.
+**Currently showing:** `images/illustrated-pit-cleaning.webp`, a generated example labelled “Illustrative example”. Precise pit size/fill diagrams remain on step 2. A real job photograph can replace the example later.
 
 **Why there is no photo:** the image previously used for this option,
 `images/service-cleaning.jpg`, is actually a **cattle grid**, not a pit or drain.
@@ -33,7 +31,7 @@ python make_estimator_images.py
 
 Add a `thumb` entry for it in the `PLAN` dict in `make_estimator_images.py`, and
 in `get-a-quote-src/src/App.jsx` change the `pit-cleanout` job from
-`art: "pit"` to `photo: "<file-stem>"`.
+`photo: "illustrated-pit-cleaning"` to `photo: "<file-stem>"` and remove `illustrative: true`.
 
 ---
 

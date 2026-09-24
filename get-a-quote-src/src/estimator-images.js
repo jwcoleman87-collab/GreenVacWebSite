@@ -60,6 +60,90 @@ export const ESTIMATOR_IMAGES = {
       }
     ]
   },
+  "illustrated-job-planning:card": {
+    "stem": "illustrated-job-planning",
+    "shape": "card",
+    "variants": [
+      {
+        "width": 240,
+        "height": 240
+      },
+      {
+        "width": 460,
+        "height": 460
+      }
+    ]
+  },
+  "illustrated-job-planning:thumb": {
+    "stem": "illustrated-job-planning",
+    "shape": "thumb",
+    "variants": [
+      {
+        "width": 104,
+        "height": 104
+      },
+      {
+        "width": 208,
+        "height": 208
+      }
+    ]
+  },
+  "illustrated-job-planning:wide": {
+    "stem": "illustrated-job-planning",
+    "shape": "wide",
+    "variants": [
+      {
+        "width": 400,
+        "height": 267
+      },
+      {
+        "width": 760,
+        "height": 507
+      }
+    ]
+  },
+  "illustrated-pit-cleaning:card": {
+    "stem": "illustrated-pit-cleaning",
+    "shape": "card",
+    "variants": [
+      {
+        "width": 240,
+        "height": 240
+      },
+      {
+        "width": 460,
+        "height": 460
+      }
+    ]
+  },
+  "illustrated-pit-cleaning:thumb": {
+    "stem": "illustrated-pit-cleaning",
+    "shape": "thumb",
+    "variants": [
+      {
+        "width": 104,
+        "height": 104
+      },
+      {
+        "width": 208,
+        "height": 208
+      }
+    ]
+  },
+  "illustrated-pit-cleaning:wide": {
+    "stem": "illustrated-pit-cleaning",
+    "shape": "wide",
+    "variants": [
+      {
+        "width": 400,
+        "height": 267
+      },
+      {
+        "width": 760,
+        "height": 507
+      }
+    ]
+  },
   "ndd-exposed-pipe:thumb": {
     "stem": "ndd-exposed-pipe",
     "shape": "thumb",
