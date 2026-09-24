@@ -145,7 +145,7 @@ test("opening the estimator and moving between steps sends no Google Ads convers
 test("the estimator submit handler refuses to dispatch before validation and acceptance", () => {
   const estimator = read("get-a-quote-src/src/App.jsx");
   const handler = estimator.indexOf("async function handleSubmit()");
-  const validationGuard = estimator.indexOf("!ans.acceptedTerms) return;", handler);
+  const validationGuard = estimator.indexOf("!ans.acceptedTerms || !isContactStepReady(ans)", handler);
   const request = estimator.indexOf("fetch(FORM_ENDPOINT", handler);
   const acceptanceGuard = estimator.indexOf("if (!response.ok", handler);
   const leadDispatch = estimator.indexOf("trackEstimatorLead", handler);
@@ -205,7 +205,7 @@ test("estimator shows the price before requesting contact details", () => {
 
   assert.ok(estimateComponent > 0);
   assert.ok(contactComponent > estimateComponent);
-  assert.ok(estimator.includes("Price shown before contact details"));
+  assert.ok(estimator.includes("Travel included"));
   assert.ok(estimator.includes("No name or phone number is needed to see your estimate."));
 });
 

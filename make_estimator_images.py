@@ -53,6 +53,8 @@ SHAPES = {
 # has nothing left to slide. service-potholing-card is 1000x1033 against a 3:2
 # and a 1:1 target, which is exactly that case.
 PLAN = {
+    "illustrated-pit-cleaning": {"thumb": (0.50, 0.60), "card": (0.50, 0.60), "wide": (0.50, 0.50)},
+    "illustrated-job-planning": {"thumb": (0.50, 0.50), "card": (0.50, 0.50), "wide": (0.50, 0.50)},
     # Job cards -- top-down service exposure in a gravel side path.
     "ndd-services-and-roots": {
         "card": (0.48, 0.52),
