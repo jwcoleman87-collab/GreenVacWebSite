@@ -59,6 +59,15 @@ export function selectJobType(current, jobId) {
   return next;
 }
 
+// Only the supported landing-page shortcut can preselect a job. Measurements
+// and the trench subtype still need the customer's answers before continuing.
+export function initialAnswers(search = "") {
+  const defaults = { metres: 5, preferredTime: "flexible" };
+  return new URLSearchParams(search).get("job") === "trenching"
+    ? selectJobType(defaults, "trenching")
+    : defaults;
+}
+
 export function featuredJobs(jobTypes) {
   return jobTypes.filter((job) => job.featured && !job.hidden);
 }

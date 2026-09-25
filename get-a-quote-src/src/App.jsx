@@ -6,6 +6,7 @@ import {
   cancelPayload,
   featuredJobs as pickFeaturedJobs,
   hasUncertainSiteAnswer,
+  initialAnswers,
   isContactStepReady,
   isValidMobile,
   isValidEmail,
@@ -927,19 +928,19 @@ const S = `
 }
 *{box-sizing:border-box;}
 :root{
-  --green:#136f39;
-  --green-dark:#0d552a;
-  --green-soft:#e8f2e9;
-  --green-mid:#bad5c0;
-  --cream:#efe7d3;
-  --cream-light:#f8f5ec;
-  --ink:#232a20;
-  --muted:#5c665b;
+  --green:#244e40;
+  --green-dark:#102c27;
+  --green-soft:#e7eddf;
+  --green-mid:#b7c9a8;
+  --cream:#e8ece3;
+  --cream-light:#f3f4ee;
+  --ink:#18342c;
+  --muted:#516057;
   --border:#d9dfd7;
   --white:#fff;
   --danger:#7d2b2b;
-  --radius:16px;
-  --radius-sm:11px;
+  --radius:8px;
+  --radius-sm:5px;
   --shadow:0 8px 28px rgba(25,46,32,.08);
   --shadow-soft:0 2px 10px rgba(25,46,32,.06);
   --ring:0 0 0 3px rgba(19,111,57,.32);
@@ -949,7 +950,26 @@ body{margin:0;background:var(--cream-light);}
 button,input,textarea{font:inherit;}
 button{-webkit-tap-highlight-color:transparent;}
 :focus-visible{outline:3px solid var(--green);outline-offset:2px;}
-.app{min-height:100vh;background:linear-gradient(180deg,#fff 0,#f8f5ec 34rem);font-family:'Montserrat',sans-serif;color:var(--ink);}
+.app{min-height:100vh;background:var(--cream-light);font-family:'Montserrat',sans-serif;color:var(--ink);}
+
+/* Fieldwork visual system */
+.est-brand{position:relative;display:block;width:155px;aspect-ratio:2.52;overflow:hidden;border-radius:6px;flex-shrink:0;}
+.est-brand .logo-image{position:absolute;display:block;width:110%;max-width:none;height:auto;left:-5%;top:50%;transform:translateY(-50%);clip-path:none;}
+.app .topbar{background:#102c27;border-bottom:0;}
+.app .topbar-inner{min-height:84px;}
+.app .step-label{color:#d0ddc7;}
+.app .cancel-btn{color:#f2c8bc;}
+.app .home-link{color:#d2f566;}
+.app .back-btn{border-color:#667961;background:transparent;color:#f3f4ee;}
+.app .progress{height:3px;background:#45604b;}
+.app .progress-fill{background:#d2f566;}
+.app .content{padding-top:38px;}
+.app .heading{font-weight:650;letter-spacing:-1.6px;}
+.app .primary-btn{border-radius:6px;box-shadow:none;}
+.app .pick{box-shadow:none;}
+.app .pick.selected{box-shadow:0 0 0 2px #719255;}
+.app .more-bar{background:#e8ece3;}
+.app .section-panel{box-shadow:none;}
 
 /* --- frame ------------------------------------------------------------- */
 .topbar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-bottom:1px solid rgba(19,111,57,.13);}
@@ -1169,7 +1189,7 @@ textarea.input{resize:vertical;min-height:82px;}
 }
 @media (max-width:640px){
   .topbar-inner{min-height:62px;padding:6px 14px;}
-  .logo-image{height:46px;}
+  .est-brand{width:128px;border-radius:5px;}
   .content{padding:20px 16px 8px;}
   /* Sticky only once the action is usable, and only on mobile. Sticky stays in
      the flow, so the space beneath the content is the bar's own box -- content
@@ -1317,13 +1337,7 @@ function Shell({ step, onBack, cancel, children, footer, actionReady = false }) 
                 ‹
               </button>
             )}
-            <img
-              className="logo-image"
-              src="/images/logo.webp"
-              alt="GreenVac Services"
-              width="260"
-              height="183"
-            />
+            <span className="est-brand"><img className="logo-image" src="/images/logo.png" alt="GreenVac Services" width="3508" height="2481" /></span>
           </div>
           <div className="topbar-right">
             <span className="step-label">{step === TOTAL_STEPS ? "Complete" : `Step ${step} of ${TOTAL_STEPS - 1}`}</span>
@@ -3273,7 +3287,7 @@ function S7({ onRestart, ans }) {
 
 export default function App() {
   const [screen, setScreen] = useState(1);
-  const [ans, rawSetAns] = useState({ metres: 5, preferredTime: "flexible" });
+  const [ans, rawSetAns] = useState(() => initialAnswers(window.location.search));
   const [loaded, setLoaded] = useState(false);
   const [storageNotice, setStorageNotice] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -3296,7 +3310,7 @@ export default function App() {
     let active = true;
     loadDraft().then(saved => {
       if (!active) return;
-      const restored = saved?.ans || { metres: 5, preferredTime: "flexible", reference: newReference() };
+      const restored = saved?.ans || { ...initialAnswers(window.location.search), reference: newReference() };
       const step = saved?.sent ? 7 : reachableScreen(restored, saved?.screen || 1);
       sentRef.current = Boolean(saved?.sent);
       rawSetAns(restored);
