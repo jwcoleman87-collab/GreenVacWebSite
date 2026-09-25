@@ -934,3 +934,16 @@ test("readiness rules gate each step the same way the screens do", async () => {
   assert.equal(state.hasUncertainSiteAnswer({ access: "open", ground: "unsure" }), true);
   assert.equal(state.hasUncertainSiteAnswer({ access: "open", ground: "normal", spoilVolume: "unsure" }), true);
 });
+
+
+test("NDT landing link preselects only trenching and still requires the subtype", async () => {
+  const { initialAnswers, isJobStepReady } = await loadState();
+  const answers = initialAnswers("?job=trenching");
+  assert.equal(answers.jobType, "trenching");
+  assert.equal(answers.subtype, null);
+  assert.equal(isJobStepReady(answers), false);
+  assert.equal(answers.metres, 5);
+  assert.equal(initialAnswers("").jobType, undefined);
+  assert.equal(initialAnswers("?job=unknown&metres=999&subtype=Electrical").jobType, undefined);
+  assert.equal(initialAnswers("?job=trenching&metres=999").metres, 5);
+});

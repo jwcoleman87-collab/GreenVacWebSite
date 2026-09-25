@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const isOpen = mobileMenu.classList.toggle('open');
       hamburger.classList.toggle('active');
       hamburger.setAttribute('aria-expanded', String(isOpen));
+      hamburger.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
       mobileMenu.setAttribute('aria-hidden', String(!isOpen));
     });
 
@@ -45,7 +46,19 @@ document.addEventListener('DOMContentLoaded', function () {
         mobileMenu.classList.remove('open');
         hamburger.classList.remove('active');
         hamburger.setAttribute('aria-expanded', 'false');
+        hamburger.setAttribute('aria-label', 'Open menu');
+        mobileMenu.setAttribute('aria-hidden', 'true');
       });
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && mobileMenu.classList.contains('open')) {
+        mobileMenu.classList.remove('open');
+        hamburger.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
+        hamburger.setAttribute('aria-label', 'Open menu');
+        mobileMenu.setAttribute('aria-hidden', 'true');
+        hamburger.focus();
+      }
     });
   }
 

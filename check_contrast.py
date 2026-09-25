@@ -11,10 +11,9 @@ Output is pure ASCII so it runs cleanly in the Windows console.
 WHY THIS IS A CURATED LIST AND NOT AN AUTO-SCAN
 -----------------------------------------------
 Automated scanners flag a colour by comparing it against the *page*
-background. That gives false positives here: the bright green #28c06e
-measures only ~2.1:1 against the cream page, so a blind scan "fails" it --
-but that green is ONLY ever used on the dark photo-card overlay, where it
-sits at ~7:1 and passes comfortably. Contrast is a property of a
+background. Lime text belongs on dark surfaces, while lime buttons and
+bands use forest text. A blind scan against the page background would
+therefore report false failures. Contrast is a property of a
 foreground *on its actual rendered background*, so each pairing below is
 declared explicitly. If you change a brand colour, update PALETTE; if you
 add a new text-on-surface combination, add it to CHECKS.
@@ -22,31 +21,31 @@ add a new text-on-surface combination, add it to CHECKS.
 AA thresholds: 4.5:1 normal text, 3.0:1 large text (>=24px, or >=18.66px bold).
 """
 
-# --- Palette (mirror of :root in css/styles.css) ------------------------------
+# --- Palette (mirror of :root in css/modern.css) ------------------------------
 PALETTE = {
-    "green-brand":  "#1b7046",
-    "green-glow":   "#136f39",   # == --accent; green text/icons on LIGHT backgrounds
-    "green-bright": "#28c06e",   # vivid green -- ONLY on dark photo cards
-    "cream-bg":     "#f7f1e3",   # --dark-bg      page background
-    "card":         "#fffdf6",   # --dark-card    light cards
-    "surface":      "#efe7d3",   # --dark-surface section bands / estimator intro
-    "text-primary": "#232a20",
-    "text-muted":   "#515c4c",
-    "text-dim":     "#5f6a59",
+    "green-brand":  "#244e40",
+    "green-glow":   "#315b35",   # == --accent; green text/icons on LIGHT backgrounds
+    "green-bright": "#d2f566",   # vivid green -- ONLY on dark photo cards
+    "cream-bg":     "#f3f4ee",   # --dark-bg      page background
+    "card":         "#fcfdf8",   # --dark-card    light cards
+    "surface":      "#e8ece3",   # --dark-surface section bands / estimator intro
+    "text-primary": "#18342c",
+    "text-muted":   "#516057",
+    "text-dim":     "#5d695e",
     "white":        "#ffffff",
 
     # --- Estimator SPA (mirror of :root in get-a-quote-src/src/App.jsx) -------
     # The estimator ships its own inline stylesheet rather than css/styles.css,
     # so its pairings are declared separately. Keep these in step with the `S`
     # template literal in App.jsx.
-    "est-green":       "#136f39",   # eyebrows, prices, primary button fill
-    "est-green-dark":  "#0d552a",   # text on the green-soft reassurance panels
-    "est-green-soft":  "#e8f2e9",   # selected card fill, reassurance panel
-    "est-cream-light": "#f8f5ec",   # info notes, quiet "Not sure" cards
-    "est-ink":         "#232a20",   # card labels
-    "est-muted":       "#5c665b",   # card sub-copy, help text
+    "est-green":       "#244e40",   # eyebrows, prices, primary button fill
+    "est-green-dark":  "#102c27",   # text on the green-soft reassurance panels
+    "est-green-soft":  "#e7eddf",   # selected card fill, reassurance panel
+    "est-cream-light": "#f3f4ee",   # info notes, quiet "Not sure" cards
+    "est-ink":         "#18342c",   # card labels
+    "est-muted":       "#516057",   # card sub-copy, help text
     "est-placeholder": "#6b766b",   # input placeholders
-    "est-danger":      "#7d2b2b",   # the "Cancel estimate" control
+    "est-danger":      "#f2c8bc",   # cancellation on forest header
     "est-disabled-bg": "#dfe6dd",   # disabled primary button
     "est-disabled-fg": "#4a564b",   # its instruction text ("Choose a job type...")
 }
@@ -56,7 +55,7 @@ PALETTE = {
 PHOTO_OVERLAY = "#191d19"
 
 # Translucent fills, declared as (hex, alpha) -- composited over a base below.
-GREEN_TINT = ("#1b7046", 0.07)   # --green-tint, badge strip background over cream
+GREEN_TINT = ("#244e40", 0.07)   # --green-tint, badge strip background over cream
 
 
 # --- Colour maths (WCAG 2.1) --------------------------------------------------
@@ -98,6 +97,15 @@ def resolve(colour, base=None):
 # --- The pairings, as actually rendered on the site ---------------------------
 # (label, foreground, background, large_text?)
 CHECKS = [
+    ("NDT body / final green panel", "#e0eadd", "#1b7046", False),
+    ("NDT eyebrow / stone", "#286145", "#f3f4ee", False),
+    ("NDT note / pale green", "#294c38", "#e4ebdf", False),
+    ("NDT reach copy / forest", "#d0ddc8", "#102c27", False),
+    ("Hero heading / forest", "#f3f4ee", "#102c27", True),
+    ("Hero body / forest", "#c4d1c6", "#102c27", False),
+    ("Lime primary action / forest text", "#102c27", "#d2f566", False),
+    ("Trust detail / lime", "#3e542a", "#d2f566", False),
+    ("Footer copy / deep forest", "#b9c9b8", "#0b211d", False),
     # on the cream page background
     ("Body heading - text-primary / page",      "text-primary", "cream-bg", False),
     ("Body copy - text-muted / page",            "text-muted",   "cream-bg", False),
@@ -129,7 +137,7 @@ CHECKS = [
     ("Est reassurance - green-dark / green-soft", "est-green-dark",  "est-green-soft",  False),
     ("Est primary button - white / green",        "white",           "est-green",       False),
     ("Est disabled button - fg / disabled bg",    "est-disabled-fg", "est-disabled-bg", False),
-    ("Est cancel control - danger / white",       "est-danger",      "white",           False),
+    ("Est cancel control - blush / forest",       "est-danger",      "#102c27",           False),
     ("Est input placeholder - / white",           "est-placeholder", "white",           False),
     ("Est info note - muted / cream",             "est-muted",       "est-cream-light", False),
 ]
