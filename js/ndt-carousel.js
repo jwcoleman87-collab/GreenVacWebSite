@@ -4,7 +4,6 @@
   if (!carousel) return;
   const viewport = carousel.querySelector('.ndt-carousel-window');
   const track = carousel.querySelector('.ndt-job-grid');
-  const cards = [...track.children];
   const previous = carousel.querySelector('.ndt-carousel-prev');
   const next = carousel.querySelector('.ndt-carousel-next');
   const status = carousel.querySelector('.ndt-carousel-status');
@@ -16,7 +15,7 @@
   let offset = 0;
   let step = 0;
 
-  // Start with job 01 as the first full card; job 05 peeks in on the left.
+  // Start with job 01 as the first full card; job 15 peeks in on the left.
   track.prepend(track.lastElementChild);
   function layout() {
     const width = track.firstElementChild.getBoundingClientRect().width;
@@ -27,7 +26,8 @@
     carousel.style.setProperty('--arrow-top', `${width * 3 / 8}px`);
     [...track.children].forEach((card, index) => {
       // Fully off-screen cards stay out of the keyboard order.
-      card.inert = index > (mobile.matches ? 2 : 3);
+      card.toggleAttribute('inert', index > (mobile.matches ? 2 : 3));
+      card.classList.toggle('is-full-card', index >= 1 && index <= (mobile.matches ? 1 : 2));
     });
   }
   function announce() {

@@ -60,6 +60,8 @@
 .ndt-job-grid figcaption span { display: block; color: #b9cbb8; font-size: .6rem; letter-spacing: .09em; margin-bottom: 8px; text-transform: uppercase; }
 .ndt-job-grid figcaption strong { display: block; color: #f3f4ee; font-weight: 500; font-size: .92rem; line-height: 1.45; }
 .ndt-carousel.is-ready .ndt-carousel-window { overflow: hidden; touch-action: pan-y; }
+.ndt-carousel.is-ready figure:not(.is-full-card) figcaption { visibility: hidden; }
+.ndt-carousel figcaption { min-height: 92px; }
 .ndt-carousel.is-ready .ndt-job-grid { transform: translateX(var(--carousel-offset)); }
 .ndt-carousel.is-moving .ndt-job-grid { transition: transform 320ms ease; }
 .ndt-carousel-arrow { position: absolute; top: var(--arrow-top); transform: translateY(-50%); z-index: 2; width: 48px; height: 48px; padding: 0; border-radius: 50%; border: 1px solid #ffffff80; background: #102c27e8; color: #fff; font-size: 25px; cursor: pointer; box-shadow: 0 3px 16px #0004; }
