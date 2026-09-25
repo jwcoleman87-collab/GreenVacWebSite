@@ -138,3 +138,9 @@
   .ndt-brand-line { margin-top: 42px !important; }
   .ndt-page .footer { padding-bottom: 88px; }
 }
+
+/* Real job photos: preserve the existing trench image below the new hero. */
+.ndt-explain-photo { margin: 28px 0 0; }
+.ndt-explain-photo picture { display: block; }
+.ndt-explain-photo img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: center 60%; border-radius: 8px; }
+.ndt-explain-photo figcaption { margin-top: 12px; color: #516057; font-size: .72rem; line-height: 1.6; }
