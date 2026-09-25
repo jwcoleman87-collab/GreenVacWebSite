@@ -44,24 +44,18 @@ export function cancelPayload(screen) {
   return { step: screen, step_id: stepIdFor(screen) };
 }
 
-// Choosing a job clears every job-specific answer, so a switched job can never
-// carry the previous job's measurements into the price. Behaviour preserved
-// verbatim from the shipped estimator.
+// Re-selecting the current job is a no-op. Changing jobs clears only the
+// measurements that no longer apply, retaining the customer's site and contact.
 export function selectJobType(current, jobId) {
-  const next = {
-    metres: current.metres || 5,
-    preferredTime: "flexible",
-    jobType: jobId,
-    subtype: null,
-  };
-
-  // Exact spot quantities are required for calculated NDD and potholing
-  // estimates. Starting the stepper at one keeps the question low-friction
-  // without reviving the ambiguous historic "1-2" label.
-  if (jobId === "service-exposure" || jobId === "potholing") {
-    next.exposureCount = 1;
+  if (current.jobType === jobId) return current;
+  const next = { ...current, jobType: jobId, subtype: null, acceptedTerms: false };
+  for (const key of ["depth", "width", "exposureCount", "exposureDepth", "leakArea",
+    "pitSize", "pitFill", "cattleCount", "cattleFill", "boreDist", "otherDescription", "spoilVolume"]) {
+    delete next[key];
   }
-
+  next.metres = current.metres || 5;
+  next.preferredTime = current.preferredTime || "flexible";
+  if (jobId === "service-exposure" || jobId === "potholing") next.exposureCount = 1;
   return next;
 }
 
@@ -134,7 +128,8 @@ export function isSiteStepReady(ans) {
 }
 
 export function isContactStepReady(ans) {
-  return Boolean(ans.name?.trim() && ans.mobile?.trim() && ans.preferredDay);
+  return Boolean(ans.name?.trim() && isValidMobile(ans.mobile) &&
+    isValidEmail(ans.email) && ans.preferredDay);
 }
 
 export function hasUncertainSiteAnswer(ans) {
@@ -145,4 +140,21 @@ export function hasUncertainSiteAnswer(ans) {
     ans.spoil === "unsure" ||
     ans.spoilVolume === "unsure"
   );
+}
+
+export function isValidMobile(value) {
+  return /^(?:04[0-9]{8}|\+?614[0-9]{8})$/.test(String(value || "").replace(/[\s()-]/g, ""));
+}
+export function isValidEmail(value) {
+  return !value?.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+// Earlier steps must be complete before restored/browser-forward navigation.
+export function reachableScreen(ans, requested) {
+  const target = Math.min(6, Math.max(1, Number(requested) || 1));
+  if (!isJobStepReady(ans)) return 1;
+  if (target > 2 && !isDetailStepReady(ans)) return 2;
+  if (target > 3 && !isSiteStepReady(ans)) return 3;
+  if (target > 5 && !isContactStepReady(ans)) return 5;
+  return target;
 }

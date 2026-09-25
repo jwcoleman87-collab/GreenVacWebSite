@@ -8,6 +8,9 @@ import {
   hasUncertainSiteAnswer,
   initialAnswers,
   isContactStepReady,
+  isValidMobile,
+  isValidEmail,
+  reachableScreen,
   isDetailStepReady,
   isJobStepReady,
   isSiteStepReady,
@@ -16,6 +19,8 @@ import {
   stepIdFor,
   visibleExtraJobs,
 } from "./estimator-state.js";
+
+import { loadDraft, saveDraft, clearDraft, newReference } from "./estimator-draft.js";
 
 const FORM_ENDPOINT = "https://flowform.to/submit";
 const TOTAL_STEPS = 7;
@@ -97,10 +102,8 @@ const jobTypes = [
     label: "Pit or Drain Cleaning",
     shortLabel: "Pit cleaning",
     desc: "Remove silt, debris and sludge from pits and drains.",
-    // No honest pit cleanout photograph exists yet -- the previous one was
-    // actually a cattle grid. A branded diagram stands in until James supplies
-    // a real photo of a pit or drain being cleaned.
-    art: "pit",
+    photo: "illustrated-pit-cleaning",
+    illustrative: true,
     featured: false,
   },
   {
@@ -108,8 +111,8 @@ const jobTypes = [
     label: "Something Else",
     shortLabel: "Something else",
     desc: "Tell us roughly what it is and James will price it himself.",
-    art: "unsure",
-    quiet: true,
+    photo: "illustrated-job-planning",
+    illustrative: true,
     featured: false,
   },
   {
@@ -274,7 +277,7 @@ const spoilCards = [
   {
     id: "remove-all",
     label: "Remove It",
-    sub: "Removal priced at $85 + GST per cubic metre",
+    sub: "Take the excavated material away",
     art: "spoil-remove",
   },
   {
@@ -432,7 +435,7 @@ function Photo({ stem, shape, mobileShape, sizes, mobileSizes, priority = false,
   if (!mobile) return img;
   return (
     <picture>
-      <source media="(max-width:640px)" srcSet={mobile.srcSet} sizes={mobileSizes || sizes} />
+      <source media="(max-width:640px)" srcSet={mobile.srcSet} sizes="104px" />
       {img}
     </picture>
   );
@@ -689,7 +692,7 @@ function Art({ name }) {
           <Section>
             <Dig x={62} width={34} depth={44} taper={3} />
             <line x1="62" y1="22" x2="96" y2="22" stroke={ART.green} strokeWidth="1.6" />
-            <text x="102" y="26" fill={ART.green} fontSize="12" fontWeight="700">200+</text>
+            <text x="102" y="26" fill={ART.green} fontSize="12" fontWeight="700">300</text>
           </Section>
         );
 
@@ -1241,7 +1244,7 @@ const DEV_STYLES = import.meta.env.DEV
  * Leaving the estimator
  * ------------------------------------------------------------------------ */
 
-function CancelDialog({ onLeave, onStay, triggerRef }) {
+function CancelDialog({ onLeave, onStay, triggerRef, storageNotice }) {
   const dialogRef = useRef(null);
   const stayRef = useRef(null);
 
@@ -1297,7 +1300,7 @@ function CancelDialog({ onLeave, onStay, triggerRef }) {
         ref={dialogRef}
       >
         <h2 className="modal-title" id="cancel-title">Leave the estimator?</h2>
-        <p className="modal-copy" id="cancel-desc">Your answers won’t be saved.</p>
+        <p className="modal-copy" id="cancel-desc">{storageNotice || "Your draft stays in this browser tab for up to 24 hours. Nothing is sent until you submit."}</p>
         <div className="modal-actions">
           <button className="modal-stay" type="button" ref={stayRef} onClick={onStay}>
             Keep going
@@ -1325,7 +1328,7 @@ function Shell({ step, onBack, cancel, children, footer, actionReady = false }) 
       : Math.min(100, (step / (TOTAL_STEPS - 1)) * 100);
   return (
     <div className="app">
-      <style>{S}{DEV_STYLES}</style>
+      <style>{S}{DEV_STYLES}{UX_STYLES}</style>
       <header className="topbar">
         <div className="topbar-inner">
           <div className="brand-wrap">
@@ -1345,7 +1348,7 @@ function Shell({ step, onBack, cancel, children, footer, actionReady = false }) 
                 ref={cancel.triggerRef}
                 onClick={cancel.onRequest}
               >
-                <span>Cancel estimate</span>
+                <span>Save and leave</span>
               </button>
             ) : (
               // The enquiry has already been sent on the final screen, so a red
@@ -1363,7 +1366,10 @@ function Shell({ step, onBack, cancel, children, footer, actionReady = false }) 
           card, description and input scrolls clear of it. On mobile it may
           additionally stick once it is usable -- sticky keeps its own space in
           the flow, so the reserved gap and the bar are the same box. */}
-      <main className="content">{children}</main>
+      <main className="content">
+        {cancel?.storageNotice && <div className="info-note" role="status">{cancel.storageNotice}</div>}
+        {children}
+      </main>
       {footer && (
         <div className={`footer-wrap${actionReady ? " is-sticky" : ""}`}>
           <div className="footer-inner">{footer}</div>
@@ -1374,6 +1380,7 @@ function Shell({ step, onBack, cancel, children, footer, actionReady = false }) 
           onLeave={cancel.onLeave}
           onStay={cancel.onStay}
           triggerRef={cancel.triggerRef}
+          storageNotice={cancel.storageNotice}
         />
       )}
       {MOCK_SUBMIT && (
@@ -1425,7 +1432,7 @@ function Pick({ card, selected, onSelect, variant, sizes, mobileSizes, priority,
     <Photo
       stem={card.photo}
       shape={variant === "job" ? "card" : variant === "context" ? "context" : "thumb"}
-      mobileShape={variant === "job" ? "wide" : undefined}
+      mobileShape={variant === "job" ? "thumb" : undefined}
       sizes={sizes}
       mobileSizes={mobileSizes}
       priority={priority}
@@ -1447,6 +1454,7 @@ function Pick({ card, selected, onSelect, variant, sizes, mobileSizes, priority,
         <span className="pick-label">{card.label}</span>
         {card.sub && <span className="pick-sub">{card.sub}</span>}
         {card.desc && <span className="pick-sub">{card.desc}</span>}
+        {card.illustrative && <span className="image-caption">Illustrative example</span>}
       </span>
       {selected && (
         <span className="pick-tick">
@@ -1541,8 +1549,8 @@ function S1({ onNext, ans, setAns, cancel }) {
       <Heading
         eyebrow="GreenVac Job Estimator"
         title="What do you need help with?"
-        sub="Choose the closest match. You can select “Not sure” anywhere you do not know the technical answer."
-        trust="Ballpark price in under two minutes"
+        sub="Choose the closest match. Not sure? We can help."
+        trust="See an estimate before sharing your contact details"
       />
 
       <div className="job-grid">
@@ -1603,6 +1611,7 @@ function S1({ onNext, ans, setAns, cancel }) {
                 variant="row"
                 selected={ans.jobType === job.id}
                 onSelect={() => chooseJob(job)}
+                eager
                 sizes="96px"
               />
             ))}
@@ -1952,7 +1961,7 @@ function S3({ onNext, onBack, ans, setAns, cancel }) {
       {requiresSpoilVolume && (
         <Question id="q-spoil-volume" count="Question 5 of 5" title="How much spoil should be removed?">
           <p className="section-help" style={{ marginTop: -4 }}>
-            A rough volume is enough. GreenVac charges $85 + GST per cubic metre.
+            Choose an approximate quantity. Removal is included in your estimate when the quantity is known.
           </p>
           <ArtGrid cards={spoilVolumeCards} value={ans.spoilVolume} onChange={set("spoilVolume")} />
         </Question>
@@ -2019,7 +2028,7 @@ const spoilVolumeCards = [
   {
     id: "unsure",
     label: "Not Sure",
-    sub: "Estimate using the minimum 0.25 m³",
+    sub: "James will check the quantity",
     art: "unsure",
     quiet: true,
   },
@@ -2139,24 +2148,6 @@ function calculateSpoilRemoval(ans) {
     assumptionNote,
     source,
   };
-}
-
-function getSpoilRemovalSummaryRows(estimate) {
-  const removal = estimate.spoilRemoval;
-  if (!removal?.active) return [];
-
-  const rows = [
-    {
-      label: "Estimated spoil removal",
-      value: `${trimDecimal(removal.volumeM3)} m³ × $${removal.ratePerM3} = $${formatSpoilCost(removal.cost)} + GST`,
-    },
-  ];
-
-  if (removal.assumptionNote) {
-    rows.push({ label: "Spoil assumption", value: removal.assumptionNote });
-  }
-
-  return rows;
 }
 
 // Suburb is mandatory but postcode is optional, so the named ACT localities
@@ -2354,21 +2345,17 @@ function normalizeArea(value) {
 }
 
 function isCoreOperatingArea(ans) {
-  const postcodeMatch = String(ans.postcode || "").match(/\b\d{4}\b/);
-  if (postcodeMatch) {
-    const postcode = Number(postcodeMatch[0]);
-    if (
-      (postcode >= 2600 && postcode <= 2618) ||
-      (postcode >= 2900 && postcode <= 2920) ||
-      postcode === 2620 ||
-      postcode === 2621 ||
-      postcode === 2622
-    ) {
-      return true;
-    }
-  }
-
-  return CORE_AREA_NAMES.has(normalizeArea(ans.suburb));
+  const suburb = normalizeArea(ans.suburb);
+  const postcodeText = String(ans.postcode || "").trim();
+  if (!CORE_AREA_NAMES.has(suburb)) return false;
+  if (!postcodeText) return true;
+  if (!/^\d{4}$/.test(postcodeText)) return false;
+  const postcode = Number(postcodeText);
+  // Never let an ambiguous suburb name override an out-of-area postcode.
+  if (suburb === "braidwood") return postcode === 2622;
+  if (suburb === "bungendore") return postcode === 2621;
+  if (["queanbeyan", "queanbeyan east", "queanbeyan west", "googong", "jerrabomberra", "karabar", "crestwood", "beard", "oaks estate"].includes(suburb)) return postcode === 2620;
+  return (postcode >= 2600 && postcode <= 2618) || (postcode >= 2900 && postcode <= 2920);
 }
 
 function manualEstimate(reviewReason) {
@@ -2393,8 +2380,8 @@ function getManualReviewReason(ans) {
     return "Cattle grid cleaning is not available through the estimator. James needs to review the job before discussing price or availability.";
   }
 
-  if (ans.jobType === "trenching" && Number(ans.metres || 5) > 100) {
-    return "Trenches over 100 metres need a scope review before pricing. James will check the route, staging and site conditions rather than guess at a number.";
+  if (ans.jobType === "trenching" && Number(ans.metres || 5) > 30) {
+    return "Trenches over 30 metres need a scope review before pricing. James will check the route, staging and site conditions rather than guess at a number.";
   }
 
   if (ans.jobType === "service-exposure" || ans.jobType === "potholing") {
@@ -2420,6 +2407,16 @@ function getManualReviewReason(ans) {
 
   if (ans.spoil === "unsure") {
     return "Whether spoil should stay onsite or be removed is not yet known. James will review that choice before pricing the job.";
+  }
+
+  if (ans.spoil === "remove-all") {
+    const removal = calculateSpoilRemoval(ans);
+    if (removal.volumeAssumed) {
+      return "The spoil quantity is uncertain. James will check the dimensions and removal needed before pricing the job.";
+    }
+    if (removal.volumeM3 > 1 + 1e-9) {
+      return "More than 1.00 cubic metre of spoil may require additional loads. James will review the quantity before pricing removal.";
+    }
   }
 
   const hasLocation = Boolean(ans.suburb?.trim() || ans.postcode?.trim());
@@ -2505,6 +2502,9 @@ function calcEstimate(ans) {
     RATE *
     combinedMultiplier;
 
+  if ((setupHours + productionHours) * combinedMultiplier > 8) {
+    return manualEstimate("This job may take more than one working day. James will check the scope and staging before pricing it.");
+  }
   const spoilRemoval = calculateSpoilRemoval(ans);
   if (spoilRemoval.volumeAssumed) needsReview = true;
 
@@ -2534,7 +2534,7 @@ function SummaryRows({ rows }) {
   ));
 }
 
-function S4({ onNext, onBack, ans, cancel }) {
+function S4({ onNext, onBack, onEdit, ans, cancel }) {
   const estimate = calcEstimate(ans);
   const job = getJob(ans.jobType);
   const detailRows = getJobDetailRows(ans);
@@ -2553,12 +2553,12 @@ function S4({ onNext, onBack, ans, cancel }) {
       footer={
         <>
           <button className="primary-btn" type="button" onClick={onNext}>
-            {estimate.manualOnly ? "Ask James to Price This Job" : "Ask James to Review My Estimate"}
+            {estimate.manualOnly ? "Send Job Details" : "Send to James"}
           </button>
           <div className="footer-note">
             {estimate.manualOnly
-              ? "Contact details are only requested after you have seen where you stand."
-              : "Contact details are only requested after you have seen the price."}
+              ? "Add your contact details on the next step."
+              : "James will confirm the scope and availability."}
           </div>
         </>
       }
@@ -2566,11 +2566,11 @@ function S4({ onNext, onBack, ans, cancel }) {
       <Heading
         mark
         eyebrow={estimate.manualOnly ? "NO AUTOMATIC ESTIMATE" : "YOUR NO-OBLIGATION ESTIMATE"}
-        title={estimate.manualOnly ? "Thanks — James will price this one himself" : "Thanks — here’s your ballpark estimate"}
+        title={estimate.manualOnly ? "Let’s check this job" : "Your estimated cost"}
         sub={
           estimate.manualOnly
-            ? "This one sits outside the jobs the estimator can price honestly, so it isn’t going to guess at a number. Send the details through and James will work out a ballpark once he has looked at them. There’s no obligation either way."
-            : "You’ve given us a good picture of the job. There’s no obligation and no sales follow-up unless you choose to send the estimate to James for review."
+            ? "Send your details and James will confirm a price."
+            : "Based on the job details below. Travel is included."
         }
       />
 
@@ -2579,13 +2579,13 @@ function S4({ onNext, onBack, ans, cancel }) {
       {estimate.manualOnly ? (
         <div className="estimate-card main manual">
           <div className="estimate-kicker">Priced by James</div>
-          <div className="manual-line">A ballpark needs a proper look</div>
+          <div className="manual-line">Price to be confirmed</div>
           <div className="estimate-gst">
             {estimate.reviewReason}
           </div>
           <div className="privacy-proof">
             <CheckIcon size={13} />
-            No guessed price shown
+            No obligation
           </div>
         </div>
       ) : (
@@ -2597,7 +2597,7 @@ function S4({ onNext, onBack, ans, cancel }) {
           <div className="estimate-gst">+ GST · Subject to GreenVac site review</div>
           <div className="privacy-proof">
             <CheckIcon size={13} />
-            Price shown before contact details
+            Travel included
           </div>
         </div>
       )}
@@ -2609,11 +2609,13 @@ function S4({ onNext, onBack, ans, cancel }) {
           <CheckIcon size={18} />
           <div>
             <strong>James will personally review this one</strong>
-            One or more details are uncertain or site-dependent. That is normal and the range already allows for your current answers.
+            Some site details need checking. The final price may change after review.
           </div>
         </div>
       )}
 
+      <p className="reference">Reference: <strong>{ans.reference}</strong></p>
+      <EditLinks onEdit={onEdit} />
       <div className="estimate-card">
         <div className="summary-heading">
           {job?.photo && (
@@ -2631,10 +2633,9 @@ function S4({ onNext, onBack, ans, cancel }) {
             { label: "Location", value: buildLocation(ans) },
             { label: "Site conditions", value: conditionSummary },
             { label: "Spoil", value: findLabel(spoilCards, ans.spoil) },
-            ...getSpoilRemovalSummaryRows(estimate),
             ...(estimate.manualOnly
               ? []
-              : [{ label: "Travel", value: `$${estimate.travel} + GST fixed travel included` }]),
+              : [{ label: "Travel", value: "Included" }]),
           ]}
         />
       </div>
@@ -2648,13 +2649,71 @@ function S4({ onNext, onBack, ans, cancel }) {
   );
 }
 
+const EMPTY_PHOTOS = [];
+function PhotoPreviews({ files = EMPTY_PHOTOS, onRemove }) {
+  const [urls, setUrls] = useState([]);
+  useEffect(() => {
+    const next = files.map(file => URL.createObjectURL(file));
+    setUrls(next);
+    return () => next.forEach(url => URL.revokeObjectURL(url));
+  }, [files]);
+  if (!files.length) return null;
+  return <div className="uploaded-photos" aria-label="Your site photos">
+    {files.map((file, index) => <figure key={`${file.name}-${index}`}>
+      <a href={urls[index]} target="_blank" rel="noreferrer" aria-label={`Open site photo ${index + 1}`}>
+        <img src={urls[index]} alt={`Your site photo ${index + 1}`} width="240" height="240" decoding="async" />
+      </a>
+      {onRemove && <button type="button" onClick={() => onRemove(index)} aria-label={`Remove photo ${index + 1}`}>Remove</button>}
+    </figure>)}
+  </div>;
+}
+
+function EditLinks({ onEdit, contact = false }) {
+  return <nav className="edit-links" aria-label="Edit your estimate">
+    {[[1, "Job type"], [2, "Measurements"], [3, "Site details"], ...(contact ? [[5, "Contact & photos"]] : [])].map(([step, label]) =>
+      <button type="button" key={step} onClick={() => onEdit(step)}>Edit {label.toLowerCase()}</button>
+    )}
+  </nav>;
+}
+
+const UX_STYLES = `
+.app{background:#f6f7f3;}
+.pick,.estimate-card{box-shadow:none;}
+.footer-wrap.is-sticky{position:static;background:transparent;}
+.pick:hover{transform:none;}
+.heading-sub{max-width:56ch;}
+.image-caption{display:block;font-size:10px;margin-top:5px;color:#586358;}
+.reference{font-size:12px;color:#4d584e;overflow-wrap:anywhere;}
+.edit-links{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 20px;}
+.edit-links button{border:1px solid #bbcebb;border-radius:6px;padding:8px 11px;background:#fff;color:#136f39;font-size:12px;cursor:pointer;}
+.uploaded-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0;}
+.uploaded-photos figure{margin:0;min-width:0;}
+.uploaded-photos img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#e5eade;}
+.uploaded-photos button{width:100%;padding:8px;border:0;background:transparent;color:#9b3131;cursor:pointer;}
+.field-error{color:#9b3131;font-size:13px;line-height:1.5;}
+@media(max-width:640px){.pick--job{flex-direction:row;align-items:stretch;}.pick--job .pick-media{flex:0 0 104px;width:104px;aspect-ratio:1;}.pick--job .pick-body{min-height:0;padding:12px;}.pick--job .pick-label{font-size:14px;}.job-grid{gap:10px;}.edit-links button{min-height:44px;}.uploaded-photos{grid-template-columns:repeat(2,minmax(0,1fr));}}
+`;
+
 function S5({ onNext, onBack, ans, setAns, cancel }) {
   const photoCount = ans.sitePhotos?.length || 0;
   const ready = isContactStepReady(ans);
+  const [photoError, setPhotoError] = useState("");
 
   const handlePhotos = (event) => {
-    const files = Array.from(event.target.files || []).slice(0, 5);
+    const incoming = Array.from(event.target.files || []);
+    const existing = ans.sitePhotos || [];
+    const files = [...existing];
+    let error = "";
+    for (const file of incoming) {
+      if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) { error = "Please use JPG, PNG, WebP or GIF photos."; continue; }
+      if (file.size > 5 * 1024 * 1024) { error = "Each photo must be under 5 MB."; continue; }
+      if (files.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) continue;
+      if (files.length >= 5) { error = "You can add up to five photos. Remove one before adding another."; break; }
+      files.push(file);
+    }
+    setPhotoError(error);
     setAns((current) => ({ ...current, sitePhotos: files }));
+    event.target.value = "";
   };
 
   return (
@@ -2671,8 +2730,8 @@ function S5({ onNext, onBack, ans, setAns, cancel }) {
     >
       <Heading
         eyebrow="Send It to James"
-        title="Want GreenVac to review it?"
-        sub="Add your details so James can check the estimate against your site and confirm the next step."
+        title="Where can we reach you?"
+        sub="James will contact you to confirm the job and price."
       />
 
       <div className="estimate-card">
@@ -2696,7 +2755,10 @@ function S5({ onNext, onBack, ans, setAns, cancel }) {
             onChange={(event) => setAns((current) => ({ ...current, mobile: event.target.value }))}
             autoComplete="tel"
             inputMode="tel"
+            aria-invalid={Boolean(ans.mobile && !isValidMobile(ans.mobile))}
+            aria-describedby="mobile-help"
           />
+          <span id="mobile-help" className={ans.mobile && !isValidMobile(ans.mobile) ? "field-error" : "field-hint"}>Australian mobile, e.g. 0412 345 678.</span>
           <input
             className="input"
             type="email"
@@ -2706,7 +2768,10 @@ function S5({ onNext, onBack, ans, setAns, cancel }) {
             onChange={(event) => setAns((current) => ({ ...current, email: event.target.value }))}
             autoComplete="email"
             inputMode="email"
+            aria-invalid={!isValidEmail(ans.email)}
+            aria-describedby="email-help"
           />
+          {!isValidEmail(ans.email) && <span id="email-help" className="field-error">Check the email address, or leave it blank.</span>}
         </div>
       </div>
 
@@ -2738,7 +2803,7 @@ function S5({ onNext, onBack, ans, setAns, cancel }) {
           <input
             id="site-photos"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             multiple
             onChange={handlePhotos}
             style={{ display: "none" }}
@@ -2751,6 +2816,8 @@ function S5({ onNext, onBack, ans, setAns, cancel }) {
           </div>
           <div className="photo-help">Photos often let James confirm access and scope much faster.</div>
         </label>
+        {photoError && <p className="field-error" role="alert">{photoError}</p>}
+        <PhotoPreviews files={ans.sitePhotos} onRemove={(index) => setAns(current => ({ ...current, sitePhotos: current.sitePhotos.filter((_, i) => i !== index) }))} />
         <div className="photo-examples" aria-label="Useful photo examples">
           {[
             { stem: "tight-access", label: "Where we can park" },
@@ -2813,6 +2880,7 @@ function buildRequestDetails(ans) {
   const photoCount = ans.sitePhotos?.length || 0;
   const body = [
     "NEW ESTIMATE REQUEST - GREENVAC",
+    `Reference: ${ans.reference || "Not assigned"}`,
     "",
     "----------------------------",
     estimate.manualOnly
@@ -2836,6 +2904,7 @@ function buildRequestDetails(ans) {
     `Ground conditions: ${ground || "Not provided"}`,
     `Services nearby: ${servicesNearby || "Not provided"}`,
     `Spoil: ${spoil || "Not provided"}`,
+    `Selected removal quantity: ${spoilVolume || (ans.jobType === "trenching" ? "From trench dimensions" : "Not selected")}`,
     ...(estimate.spoilRemoval.active
       ? [
           `Estimated spoil volume: ${trimDecimal(estimate.spoilRemoval.volumeM3)} m³`,
@@ -2846,7 +2915,7 @@ function buildRequestDetails(ans) {
             ? [`Spoil assumption: ${estimate.spoilRemoval.assumptionNote}`]
             : []),
         ]
-      : ["Spoil removal cost: $0.00 + GST"]),
+      : [estimate.manualOnly ? "Spoil removal cost: Requires review" : "Spoil removal cost: $0.00 + GST"]),
     estimate.manualOnly
       ? "Travel: Requires James's review"
       : `Travel: $${estimate.travel} + GST fixed travel included`,
@@ -2874,11 +2943,11 @@ function buildRequestDetails(ans) {
     timing,
     address,
     body,
-    subject: `Estimate Request - ${ans.subtype || "Hydrovac Job"}`,
+    subject: `Estimate ${ans.reference || "Request"} - ${ans.subtype || "Hydrovac Job"}`,
   };
 }
 
-function S6({ onNext, onBack, ans, setAns, cancel }) {
+function S6({ onNext, onBack, onEdit, onSubmitting, ans, setAns, cancel }) {
   const [submitState, setSubmitState] = useState("idle");
   const [submitError, setSubmitError] = useState("");
   const submitLockRef = useRef(false);
@@ -2887,20 +2956,20 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
   const request = buildRequestDetails(ans);
 
   async function handleSubmit() {
-    if (submitLockRef.current || !ans.acceptedTerms) return;
+    if (submitLockRef.current || !ans.acceptedTerms || !isContactStepReady(ans) || reachableScreen(ans, 6) !== 6) return;
 
     submitLockRef.current = true;
+    onSubmitting(true);
     if (!submissionEventIdRef.current) {
       submissionEventIdRef.current =
-        window.GreenVacAnalytics?.createEventId("estimator") ||
-        `estimator-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+        `estimator-${ans.reference}`;
     }
 
     setSubmitState("submitting");
     setSubmitError("");
 
     if (typeof window.posthog !== "undefined") {
-      window.posthog.capture("estimator_submit_attempt");
+      try { window.posthog.capture("estimator_submit_attempt"); } catch { /* optional tracking */ }
     }
 
     const formData = new FormData();
@@ -2908,6 +2977,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
     formData.append("_subject", request.subject);
     formData.append("_replyto", ans.email || "");
     formData.append("form_type", "Job Estimator");
+    formData.append("estimate_reference", ans.reference);
     formData.append("lead_type", "estimate_request");
     formData.append("entrypoint", "job_estimator");
     formData.append("name", ans.name || "");
@@ -2925,7 +2995,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
     );
     formData.append(
       "spoil_volume_m3",
-      request.estimate.spoilRemoval.active
+      request.estimate.manualOnly ? "" : request.estimate.spoilRemoval.active
         ? trimDecimal(request.estimate.spoilRemoval.volumeM3)
         : "0",
     );
@@ -2935,7 +3005,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
     );
     formData.append(
       "spoil_cost",
-      `$${formatSpoilCost(request.estimate.spoilRemoval.cost)} + GST`,
+      request.estimate.manualOnly ? "" : `$${formatSpoilCost(request.estimate.spoilRemoval.cost)} + GST`,
     );
     formData.append(
       "spoil_volume_assumed",
@@ -2946,6 +3016,9 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
       request.estimate.spoilRemoval.assumptionNote || "",
     );
     formData.append("needs_review", request.estimate.needsReview ? "yes" : "no");
+    formData.append("review_reason", request.estimate.reviewReason || "");
+    formData.append("spoil_choice", request.spoil || "");
+    formData.append("spoil_volume_choice", request.spoilVolume || "");
     formData.append("address", request.address || "");
     formData.append("suburb", ans.suburb || "");
     formData.append("postcode", ans.postcode || "");
@@ -2985,24 +3058,24 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
         throw new Error(providerMessage || `Request failed with status ${response.status}`);
       }
 
-      window.GreenVacAnalytics?.trackEstimatorLead({
-        eventId: submissionEventIdRef.current,
-      });
+      try {
+        window.GreenVacAnalytics?.trackEstimatorLead({
+          eventId: submissionEventIdRef.current,
+        });
+      } catch { /* A tracking failure cannot turn an accepted request into an error. */ }
 
       if (typeof window.posthog !== "undefined") {
-        window.posthog.capture("estimator_submit_success");
+        try { window.posthog.capture("estimator_submit_success"); } catch { /* optional tracking */ }
       }
 
       setSubmitState("success");
+      onSubmitting(false);
       onNext();
     } catch {
-      if (typeof window.posthog !== "undefined") {
-        window.posthog.capture("estimator_submit_error", {
-          reason: "submission_failed",
-        });
-      }
+      try { window.posthog?.capture("estimator_submit_error", { reason: "submission_failed" }); } catch { /* optional tracking */ }
 
       submitLockRef.current = false;
+      onSubmitting(false);
       setSubmitState("error");
       setSubmitError(
         "Could not send your request right now. Please try again, call James direct, or use the email fallback below.",
@@ -3023,8 +3096,8 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
   return (
     <Shell
       step={6}
-      onBack={onBack}
-      cancel={cancel}
+      onBack={isSubmitting ? undefined : onBack}
+      cancel={{ ...cancel, onRequest: isSubmitting ? () => {} : cancel.onRequest }}
       actionReady={Boolean(ans.acceptedTerms) && !isSubmitting}
       footer={
         <>
@@ -3072,6 +3145,8 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
         </div>
       )}
 
+      <p className="reference">Reference: <strong>{ans.reference}</strong></p>
+      {!isSubmitting && <EditLinks onEdit={onEdit} contact />}
       <div className="estimate-card">
         <div className="summary-heading">Request summary</div>
         <SummaryRows
@@ -3081,7 +3156,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
             ...request.detailRows,
             { label: "Site conditions", value: conditionSummary },
             { label: "Spoil", value: request.spoil },
-            ...getSpoilRemovalSummaryRows(request.estimate),
+            { label: "Travel", value: request.estimate.manualOnly ? "To be confirmed" : "Included" },
             { label: "Name", value: ans.name },
             { label: "Mobile", value: ans.mobile },
             { label: "Location", value: request.address },
@@ -3096,6 +3171,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
         />
       </div>
 
+      <PhotoPreviews files={ans.sitePhotos} />
       <div className="condition-list">
         {(request.estimate.manualOnly
           ? [
@@ -3149,7 +3225,7 @@ function S6({ onNext, onBack, ans, setAns, cancel }) {
   );
 }
 
-function S7({ onRestart }) {
+function S7({ onRestart, ans }) {
   return (
     <Shell
       step={7}
@@ -3169,6 +3245,7 @@ function S7({ onRestart }) {
           sub="GreenVac will review the site information and contact you to confirm the price, scope and availability."
         />
 
+        <p className="reference">Your reference: <strong>{ans.reference}</strong></p>
         <div className="next-steps">
           {[
             {
@@ -3210,66 +3287,120 @@ function S7({ onRestart }) {
 
 export default function App() {
   const [screen, setScreen] = useState(1);
-  const [ans, setAns] = useState(() => initialAnswers(window.location.search));
+  const [ans, rawSetAns] = useState(() => initialAnswers(window.location.search));
+  const [loaded, setLoaded] = useState(false);
+  const [storageNotice, setStorageNotice] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const cancelTriggerRef = useRef(null);
+  const currentRef = useRef({ ans, screen });
+  const submittingRef = useRef(false);
+  const sentRef = useRef(false);
+  currentRef.current = { ans, screen };
 
-  const next = () => {
-    if (typeof window.posthog !== "undefined") {
-      if (screen === 1) {
-        window.posthog.capture("estimator_started");
+  // Every changed answer invalidates the previous acceptance. Merely moving
+  // between screens does not change answers or the reference.
+  const setAns = (update) => rawSetAns(current => {
+    const next = typeof update === "function" ? update(current) : update;
+    if (next === current) return current;
+    const changed = Object.keys(next).some(key => key !== "acceptedTerms" && next[key] !== current[key]);
+    return changed ? { ...next, acceptedTerms: false } : next;
+  });
+
+  useEffect(() => {
+    let active = true;
+    loadDraft().then(saved => {
+      if (!active) return;
+      const restored = saved?.ans || { ...initialAnswers(window.location.search), reference: newReference() };
+      const step = saved?.sent ? 7 : reachableScreen(restored, saved?.screen || 1);
+      sentRef.current = Boolean(saved?.sent);
+      rawSetAns(restored);
+      setScreen(step);
+      if (saved?.photoRestoreFailed) setStorageNotice("Your answers are restored, but this browser could not save the photos. Please add them again.");
+      window.history.replaceState({ estimator: restored.reference, step }, "");
+      setLoaded(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    let active = true;
+    saveDraft({ ans, screen, sent: sentRef.current }).then(status => {
+      if (active && status === "unavailable") setStorageNotice("This browser could not save the full draft. Keep this tab open so you do not lose your answers or photos.");
+    });
+    return () => { active = false; };
+  }, [ans, screen, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const onPop = event => {
+      const current = currentRef.current;
+      if (submittingRef.current) {
+        window.history.pushState({ estimator: current.ans.reference, step: current.screen }, "");
+        return;
       }
-      window.posthog.capture(`estimator_step_${screen + 1}`, {
-        from_step: screen,
-      });
-    }
-    setScreen((current) => current + 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+      const step = sentRef.current ? 7 : reachableScreen(current.ans, event.state?.estimator === current.ans.reference ? event.state.step : 1);
+      window.history.replaceState({ estimator: current.ans.reference, step }, "");
+      setCancelOpen(false);
+      setScreen(step);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [loaded]);
 
-  const back = () => {
-    setScreen((current) => Math.max(1, current - 1));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const go = step => {
+    if (submittingRef.current) return;
+    const target = sentRef.current ? 7 : reachableScreen(ans, step);
+    window.history.pushState({ estimator: ans.reference, step: target }, "");
+    setScreen(target);
+    window.scrollTo({ top: 0, behavior: "instant" });
   };
-
-  const restart = () => {
+  const next = () => {
+    try {
+      if (typeof window.posthog !== "undefined") {
+        if (screen === 1) window.posthog.capture("estimator_started");
+        window.posthog.capture(`estimator_step_${screen + 1}`, { from_step: screen });
+      }
+    } catch { /* Analytics must never stop the estimator. */ }
+    if (screen === 6) {
+      sentRef.current = true;
+      // Save a receipt without retaining the customer's contact data/photos.
+      rawSetAns({ reference: ans.reference, metres: 5, preferredTime: "flexible" });
+      window.history.replaceState({ estimator: ans.reference, step: 7 }, "");
+      setScreen(7);
+    } else go(screen + 1);
+  };
+  const back = () => go(Math.max(1, screen - 1));
+  const restart = async () => {
+    await clearDraft(ans.reference);
+    sentRef.current = false;
+    const fresh = { metres: 5, preferredTime: "flexible", reference: newReference() };
+    rawSetAns(fresh);
+    setStorageNotice("");
     setScreen(1);
-    setAns({ metres: 5, preferredTime: "flexible" });
+    window.history.replaceState({ estimator: fresh.reference, step: 1 }, "");
     window.scrollTo({ top: 0 });
   };
-
-  // Cancelling is diagnostic product analytics and nothing more. It stays on
-  // PostHog, carries only the step, and deliberately never touches the shared
-  // lead helper -- a customer leaving must never look like a converted lead.
-  const captureCancel = (action) => {
-    if (typeof window.posthog === "undefined") return;
-    window.posthog.capture(cancelEventName(action), cancelPayload(screen));
+  const captureCancel = action => {
+    try { window.posthog?.capture(cancelEventName(action), cancelPayload(screen)); } catch { /* optional */ }
   };
-
   const cancel = {
-    triggerRef: cancelTriggerRef,
-    open: cancelOpen,
-    stepId: stepIdFor(screen),
-    onRequest: () => {
-      captureCancel("clicked");
-      setCancelOpen(true);
-    },
-    onStay: () => {
-      captureCancel("dismissed");
-      setCancelOpen(false);
-    },
-    onLeave: () => {
+    triggerRef: cancelTriggerRef, open: cancelOpen, stepId: stepIdFor(screen), storageNotice,
+    onRequest: () => { if (!submittingRef.current) { captureCancel("clicked"); setCancelOpen(true); } },
+    onStay: () => { captureCancel("dismissed"); setCancelOpen(false); },
+    onLeave: async () => {
       captureCancel("confirmed");
+      await saveDraft({ ans, screen, sent: false });
       window.location.href = HOME_URL;
     },
   };
-
-  const shared = { ans, setAns, onNext: next, onBack: back, cancel };
+  if (!loaded) return <div className="app"><style>{S}</style><main className="content" role="status">Opening your estimate…</main></div>;
+  const shared = { ans, setAns, onNext: next, onBack: back, onEdit: go, cancel };
   if (screen === 1) return <S1 {...shared} />;
   if (screen === 2) return <S2 {...shared} />;
   if (screen === 3) return <S3 {...shared} />;
-  if (screen === 4) return <S4 ans={ans} onNext={next} onBack={back} cancel={cancel} />;
+  if (screen === 4) return <S4 {...shared} />;
   if (screen === 5) return <S5 {...shared} />;
-  if (screen === 6) return <S6 {...shared} />;
-  return <S7 onRestart={restart} />;
+  if (screen === 6) return <S6 {...shared} onSubmitting={value => { submittingRef.current = value; }} />;
+  return <S7 onRestart={restart} ans={ans} />;
 }
